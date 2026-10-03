@@ -12,7 +12,7 @@ from damir.common.cli import (
 )
 from damir.common.config import load_settings
 from damir.silver.job import build_silver_month
-from damir.silver.nomenclatures import known_codes, read_nomenclatures, write_nomenclatures
+from damir.silver.nomenclatures import read_nomenclatures, write_nomenclatures
 
 # Nom explicite : lancé avec -m, __name__ vaut « __main__ », hors de la hiérarchie « damir »
 logger = logging.getLogger("damir.silver")
@@ -50,8 +50,7 @@ def main(argv: list[str] | None = None) -> None:
         nomenclatures = read_nomenclatures(spark, settings.paths.nomenclatures_file)
         rows = write_nomenclatures(nomenclatures, settings.nomenclatures_table)
         logger.info("Nomenclatures : %s libellés chargés", f"{rows:,}")
-        known = known_codes(nomenclatures)
-        results = [build_silver_month(spark, settings, args.year, m, known) for m in args.month]
+        results = [build_silver_month(spark, settings, args.year, m) for m in args.month]
     finally:
         spark.stop()
     logger.info(

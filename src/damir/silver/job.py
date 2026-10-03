@@ -6,8 +6,7 @@ lignes et même montant total de dépense (silver + quarantaine = bronze).
 
 import logging
 import time
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 
 from pyspark.sql import Column, DataFrame, SparkSession
@@ -17,7 +16,6 @@ from damir.common.config import Settings
 from damir.common.delta import PARTITION_COLUMN, overwrite_month, rows_written_by_last_commit
 from damir.common.schemas import AMOUNT
 from damir.common.tables import TableRef
-from damir.silver.nomenclatures import unknown_code_rows
 from damir.silver.transform import REJECTION_COLUMN, rejection_reasons, to_silver_columns
 
 logger = logging.getLogger(__name__)
@@ -43,8 +41,6 @@ class SilverMonthResult:
     bronze: Totals
     silver: Totals
     quarantine: Totals
-    # Codes sans libellé et leur nombre de lignes, par code DAMIR (vide si non contrôlé)
-    unknown_codes: dict[str, dict[str, int]] = field(default_factory=dict)
 
 
 def check_reconciliation(bronze: Totals, silver: Totals, quarantine: Totals) -> None:
@@ -77,12 +73,11 @@ def build_silver_month(
     settings: Settings,
     year: int,
     month: int,
-    known_codes: Mapping[str, set[str]] | None = None,
 ) -> SilverMonthResult:
     """Charge un mois du bronze vers le silver et la quarantaine, puis contrôle la cohérence.
 
-    Avec `known_codes` (codes ayant un libellé, par code DAMIR), signale aussi les codes
-    sans libellé du mois ; ce n'est jamais un motif de rejet.
+    Les codes sans libellé sont contrôlés par le test dbt codes_sans_libelle, sur tous les mois
+    à la fois (plus rapide qu'une lecture du mois ici).
     """
     year_month = f"{year}{month:02d}"
     started = time.perf_counter()
@@ -127,17 +122,6 @@ def build_silver_month(
             f"{quarantine_totals.rows:,}",
             ", ".join(f"{r['motif']} : {r['count']:,}" for r in reasons),
         )
-    unknown = unknown_code_rows(silver_month, known_codes) if known_codes is not None else {}
-    for code_damir, codes in unknown.items():
-        logger.warning(
-            "Silver %s : codes %s sans libellé : %s",
-            year_month,
-            code_damir,
-            ", ".join(
-                f"{code} ({rows:,} lignes, {rows / silver_totals.rows:.2%})"
-                for code, rows in codes.items()
-            ),
-        )
     logger.info(
         "Silver %s : %s lignes, %s en quarantaine, cohérence vérifiée (%.0f s)",
         year_month,
@@ -145,4 +129,4 @@ def build_silver_month(
         f"{quarantine_totals.rows:,}",
         time.perf_counter() - started,
     )
-    return SilverMonthResult(year_month, bronze_totals, silver_totals, quarantine_totals, unknown)
+    return SilverMonthResult(year_month, bronze_totals, silver_totals, quarantine_totals)
