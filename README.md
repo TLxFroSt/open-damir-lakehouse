@@ -20,9 +20,9 @@ Sur janvier et février 2025 :
 | Rapprochement bronze → silver → gold | **au centime près**, vérifié à chaque exécution |
 | Local et Databricks | **résultats identiques** (lignes, montants, tables gold) |
 | Valeurs de codes décodées | **99,95 %** (36 colonnes sur 39 à 100 %) |
-| Temps par mois, local | bronze ~10 min · silver ~7 min · gold **7 s** (PC 6 cœurs, 16 Go) |
-| Temps par mois, Databricks | bronze ~11 min · silver ~1,5 min · gold ~1,5 min (serverless) |
-| Tests | 98 tests pytest + 23 tests dbt, CI GitHub Actions |
+| Temps par mois, local | bronze **~2,5 min** · silver ~4 min · gold 15 s (PC 6 cœurs, 16 Go) |
+| Job Databricks complet | **9 min** pour deux mois (serverless), contre ~28 min avant optimisation |
+| Tests | 100 tests pytest + 24 tests dbt, CI GitHub Actions |
 
 ## Architecture
 
@@ -83,6 +83,10 @@ Chaque décision est expliquée dans un ADR (`docs/adr/`).
   Le premier déploiement a montré que Databricks SQL refuse des sous-requêtes corrélées que
   DuckDB et Spark 4.2 acceptent : les libellés passent désormais par des `LEFT JOIN`.
   → [ADR 0004](docs/adr/0004-deploiement-databricks.md)
+- **Optimisé sur mesures.** Chaque étape a été chronométrée avant d'être changée : le `.gz` lu
+  sur un seul cœur coûtait 417 s sur 617 en bronze. Décompression préalable, statistiques Delta
+  ciblées et passes inutiles supprimées : bronze 4× plus rapide, job Databricks 3× plus court,
+  résultats inchangés au centime. → [ADR 0005](docs/adr/0005-performances.md)
 - **Démarrage de Spark fiabilisé sous Windows.** Certaines sessions se figeaient une dizaine de
   minutes au démarrage. Un vidage de threads a mené au bug JDK
   [JDK-8304182](https://bugs.openjdk.org/browse/JDK-8304182) (lecture bloquante dans un
@@ -123,7 +127,7 @@ uv sync                                                   # dépendances
 uv run python -m damir.ingestion --year 2025 --month 1 2  # bronze
 uv run python -m damir.silver --year 2025 --month 1 2     # silver + quarantaine
 uv run python -m damir.gold                               # gold (dbt build)
-uv run pytest                                             # tests (~6 min)
+uv run pytest                                             # tests (~4,5 min)
 ```
 
 Les chemins se règlent dans [`config.yaml`](config.yaml), ou par variable d'environnement

@@ -22,9 +22,9 @@ On January and February 2025:
 | Bronze → silver → gold reconciliation | **to the cent**, checked on every run |
 | Local vs Databricks | **identical results** (rows, amounts, gold tables) |
 | Code values decoded | **99.95%** (36 of 39 columns at 100%) |
-| Time per month, local | bronze ~10 min · silver ~7 min · gold **7 s** (6-core PC, 16 GB) |
-| Time per month, Databricks | bronze ~11 min · silver ~1.5 min · gold ~1.5 min (serverless) |
-| Tests | 98 pytest tests + 23 dbt tests, GitHub Actions CI |
+| Time per month, local | bronze **~2.5 min** · silver ~4 min · gold 15 s (6-core PC, 16 GB) |
+| Full Databricks job | **9 min** for two months (serverless), down from ~28 min |
+| Tests | 100 pytest tests + 24 dbt tests, GitHub Actions CI |
 
 ## Architecture
 
@@ -85,6 +85,10 @@ Each decision is explained in an ADR (`docs/adr/`, in French).
   provides. The first deployment showed that Databricks SQL rejects correlated subqueries that
   DuckDB and Spark 4.2 accept: labels are now added with `LEFT JOIN`s.
   → [ADR 0004](docs/adr/0004-deploiement-databricks.md)
+- **Optimized from measurements.** Each step was timed before being changed: reading the `.gz`
+  on a single core cost 417 s out of 617 in bronze. Decompressing first, targeted Delta
+  statistics and removing wasted passes: bronze 4× faster, Databricks job 3× shorter, results
+  unchanged to the cent. → [ADR 0005](docs/adr/0005-performances.md)
 - **Reliable Spark startup on Windows.** Some sessions froze for about ten minutes at startup.
   A thread dump led to JDK bug [JDK-8304182](https://bugs.openjdk.org/browse/JDK-8304182)
   (a blocking read in a `java.nio.Pipe`), triggered when Spark copies the Delta jars to its
@@ -124,7 +128,7 @@ uv sync                                                   # dependencies
 uv run python -m damir.ingestion --year 2025 --month 1 2  # bronze
 uv run python -m damir.silver --year 2025 --month 1 2     # silver + quarantine
 uv run python -m damir.gold                               # gold (dbt build)
-uv run pytest                                             # tests (~6 min)
+uv run pytest                                             # tests (~4.5 min)
 ```
 
 Paths are set in [`config.yaml`](config.yaml), or through `DAMIR_<SECTION>_<KEY>` environment
