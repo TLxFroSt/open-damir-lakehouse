@@ -71,4 +71,5 @@ def rows_written_by_last_commit(spark: SparkSession, table: TableRef) -> int:
     comme sur Databricks (Spark Connect), contrairement à l'API Python DeltaTable.
     """
     last_commit = spark.sql(f"DESCRIBE HISTORY {table.sql_name} LIMIT 1").first()
-    return int(last_commit["operationMetrics"]["numOutputRows"])
+    # Écriture d'un DataFrame vide : Delta omet la métrique au lieu d'indiquer 0
+    return int(last_commit["operationMetrics"].get("numOutputRows", 0))
