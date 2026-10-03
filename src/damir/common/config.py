@@ -39,6 +39,19 @@ class SparkConfig:
 
     master: str
     app_name: str
+    driver_memory: str
+
+
+@dataclass(frozen=True)
+class BronzeConfig:
+    """Paramètres d'écriture de la couche bronze."""
+
+    table_name: str
+    files_per_month: int
+
+    def __post_init__(self) -> None:
+        # Une surcharge par variable d'environnement arrive en texte : conversion explicite
+        object.__setattr__(self, "files_per_month", int(self.files_per_month))
 
 
 @dataclass(frozen=True)
@@ -48,6 +61,7 @@ class Settings:
     paths: PathsConfig
     source: SourceConfig
     spark: SparkConfig
+    bronze: BronzeConfig
 
 
 def load_settings(
@@ -68,11 +82,13 @@ def load_settings(
     paths = _with_env_overrides("paths", raw.get("paths", {}), env)
     source = _with_env_overrides("source", raw.get("source", {}), env)
     spark = _with_env_overrides("spark", raw.get("spark", {}), env)
+    bronze = _with_env_overrides("bronze", raw.get("bronze", {}), env)
 
     return Settings(
         paths=PathsConfig(**{key: _resolve(path.parent, value) for key, value in paths.items()}),
         source=SourceConfig(**source),
         spark=SparkConfig(**spark),
+        bronze=BronzeConfig(**bronze),
     )
 
 

@@ -20,7 +20,8 @@ def write_config(directory: Path, **overrides: dict[str, Any]) -> Path:
             "csv_separator": ";",
             "csv_encoding": "UTF-8",
         },
-        "spark": {"master": "local[1]", "app_name": "test"},
+        "spark": {"master": "local[1]", "app_name": "test", "driver_memory": "1g"},
+        "bronze": {"table_name": "open_damir", "files_per_month": 2},
     }
     content.update(overrides)
     path = directory / "config.yaml"
@@ -64,6 +65,15 @@ def test_env_variable_overrides_file(tmp_path: Path) -> None:
 
     assert settings.paths.raw_dir == other_dir
     assert settings.spark.master == "local[4]"
+
+
+def test_env_override_of_integer_is_converted(tmp_path: Path) -> None:
+    """Une variable d'environnement (texte) devient un entier là où c'est attendu."""
+    env = {"DAMIR_BRONZE_FILES_PER_MONTH": "8"}
+
+    settings = load_settings(write_config(tmp_path), env=env)
+
+    assert settings.bronze.files_per_month == 8
 
 
 def test_config_file_from_env_variable(tmp_path: Path) -> None:

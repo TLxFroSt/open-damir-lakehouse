@@ -16,3 +16,11 @@ source:
 spark:
   master: local[*]
   app_name: open-damir-lakehouse
+  # Mémoire du driver en mode local (défaut Spark : 1g, trop juste pour ~6 Go par mois)
+  driver_memory: 6g
+
+bronze:
+  table_name: open_damir
+  # Un .gz n'est pas découpable : Spark le lit sur un seul cœur. Les lignes sont
+  # ensuite réparties en N fichiers pour écrire le Parquet en parallèle (≈ nb de cœurs).
+  files_per_month: 12

@@ -31,6 +31,8 @@ def build_spark_session(
             "spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog",
         )
+        # Horodatages en UTC, quel que soit le fuseau de la machine
+        .config("spark.sql.session.timeZone", "UTC")
     )
     for key, value in (extra_conf or {}).items():
         builder = builder.config(key, value)
