@@ -25,6 +25,7 @@ checkpoint/
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+dbt/.user.yml
 
 # Secrets et configuration locale
 .env

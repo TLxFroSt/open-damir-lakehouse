@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: stg_depenses
+    description: Dépenses du silver réduites aux colonnes utilisées par la couche gold.
+    columns:
+      - name: mois_traitement
+        data_tests: [not_null]
+      - name: montant_depense
+        data_tests: [not_null]
+
+  - name: stg_nomenclatures
+    description: Libellés des codes DAMIR, une ligne par (code_damir, code).
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [code_damir, code]

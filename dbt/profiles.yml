@@ -1,0 +1,12 @@
+# Profil local : DuckDB lit les tables Delta du silver et stocke la couche gold dans un fichier.
+# Cible Databricks (dbt-databricks) à ajouter lors du déploiement.
+damir:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      # Chemin relatif au répertoire courant ; « python -m damir.gold » passe un chemin absolu
+      path: "{{ env_var('DAMIR_GOLD_DB', '../data/gold/damir.duckdb') }}"
+      extensions:
+        - delta
+      threads: 4

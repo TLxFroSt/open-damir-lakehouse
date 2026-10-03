@@ -1,0 +1,22 @@
+name: damir
+version: "0.1.0"
+config-version: 2
+profile: damir
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages", "logs"]
+
+# Chemins des tables silver (Delta). Valeurs par défaut pour un lancement depuis dbt/ ;
+# la commande « uv run python -m damir.gold » les remplace par ceux de config.yaml.
+vars:
+  silver_table_path: ../data/silver/open_damir
+  nomenclatures_table_path: ../data/silver/nomenclatures
+
+models:
+  damir:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

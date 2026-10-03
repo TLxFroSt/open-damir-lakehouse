@@ -11,6 +11,8 @@ dependencies = [
     "pyspark==4.2.0",
     "delta-spark==4.4.0",
     "pyyaml>=6.0",
+    "dbt-core==1.12.5",
+    "dbt-duckdb==1.11.0",
 ]
 
 [dependency-groups]
