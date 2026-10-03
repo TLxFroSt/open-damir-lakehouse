@@ -47,11 +47,10 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> Iterator[SparkSession]:
     session.stop()
 
 
-@pytest.fixture
-def make_bronze(spark: SparkSession) -> Callable[..., DataFrame]:
+def bronze_rows(spark: SparkSession) -> Callable[..., DataFrame]:
     """Fabrique un DataFrame au format bronze : chaque ligne part de VALID_BRONZE_ROW.
 
-    Exemple : make_bronze({"PRS_PAI_MNT": "abc"}, {}) -> une ligne modifiée, une ligne valide.
+    Exemple : bronze_rows(spark)({"PRS_PAI_MNT": "abc"}, {}) -> une ligne modifiée, une valide.
     """
     schema = StructType(
         [StructField(code, StringType()) for code in DAMIR_SOURCE_COLUMNS] + list(TECHNICAL_FIELDS)
@@ -69,15 +68,20 @@ def make_bronze(spark: SparkSession) -> Callable[..., DataFrame]:
 
 
 @pytest.fixture
-def settings(tmp_path: Path) -> Settings:
-    """Configuration pointant vers des dossiers temporaires."""
+def make_bronze(spark: SparkSession) -> Callable[..., DataFrame]:
+    """Fixture de bronze_rows pour les tests à portée fonction."""
+    return bronze_rows(spark)
+
+
+def make_settings(base_dir: Path) -> Settings:
+    """Configuration de test pointant vers des dossiers sous `base_dir`."""
     return Settings(
         paths=PathsConfig(
-            raw_dir=tmp_path / "raw",
-            bronze_dir=tmp_path / "bronze",
-            silver_dir=tmp_path / "silver",
-            nomenclatures_file=tmp_path / "nomenclatures.csv",
-            gold_db=tmp_path / "gold" / "damir.duckdb",
+            raw_dir=base_dir / "raw",
+            bronze_dir=base_dir / "bronze",
+            silver_dir=base_dir / "silver",
+            nomenclatures_file=base_dir / "nomenclatures.csv",
+            gold_db=base_dir / "gold" / "damir.duckdb",
         ),
         source=SourceConfig(
             file_name_template="A{year}{month:02d}.csv.gz",
@@ -93,3 +97,9 @@ def settings(tmp_path: Path) -> Settings:
         ),
         storage=StorageConfig(mode="path", catalog="workspace"),
     )
+
+
+@pytest.fixture
+def settings(tmp_path: Path) -> Settings:
+    """Configuration pointant vers des dossiers temporaires."""
+    return make_settings(tmp_path)

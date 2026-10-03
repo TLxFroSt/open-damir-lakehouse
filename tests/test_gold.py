@@ -1,12 +1,12 @@
 """Test d'intégration de la couche gold : silver synthétique -> dbt build -> tables DuckDB."""
 
 import os
-from collections.abc import Callable
 from decimal import Decimal
 
 import duckdb
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from conftest import bronze_rows, make_settings
+from pyspark.sql import SparkSession
 
 from damir.common.config import Settings
 from damir.common.delta import overwrite_month
@@ -14,14 +14,18 @@ from damir.gold.build import GOLD_DB_ENV_VAR, dbt_build
 from damir.silver.job import build_silver_month
 from damir.silver.nomenclatures import write_nomenclatures
 
-MakeBronze = Callable[..., DataFrame]
 NOMENCLATURE_COLUMNS = "code_damir STRING, code STRING, libelle STRING, source STRING"
 
 
-@pytest.fixture
-def silver(spark: SparkSession, settings: Settings, make_bronze: MakeBronze) -> Settings:
-    """Silver synthétique de janvier 2025 : deux prestations, deux régions, montants connus."""
-    bronze = make_bronze(
+@pytest.fixture(scope="module")
+def silver(spark: SparkSession, tmp_path_factory: pytest.TempPathFactory) -> Settings:
+    """Silver synthétique de janvier 2025 : deux prestations, deux régions, montants connus.
+
+    Construit une seule fois pour le module (Spark est l'étape lente) ; chaque test réécrit
+    ensuite sa table des nomenclatures et relance dbt.
+    """
+    settings = make_settings(tmp_path_factory.mktemp("gold"))
+    bronze = bronze_rows(spark)(
         {"PRS_NAT": "1110", "BEN_RES_REG": "11", "PRS_PAI_MNT": "100", "PRS_REM_MNT": "70"},
         {"PRS_NAT": "1110", "BEN_RES_REG": "84", "PRS_PAI_MNT": "50", "PRS_REM_MNT": "35"},
         {"PRS_NAT": "3313", "BEN_RES_REG": "11", "PRS_PAI_MNT": "10", "PRS_REM_MNT": "6.5"},
