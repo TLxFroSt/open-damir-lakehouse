@@ -9,8 +9,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from damir.common.config import Settings
+from damir.common.delta import overwrite_month, table_properties
 from damir.ingestion.bronze import (
+    BRONZE_TABLE_PROPERTIES,
     add_technical_columns,
+    decompressed,
     drop_unnamed_columns,
     ingest_month,
     ingest_months,
@@ -137,3 +140,60 @@ def test_invalid_month_is_rejected(spark: SparkSession, settings: Settings) -> N
     """Un mois hors de 1..12 est refusé avant toute lecture."""
     with pytest.raises(ValueError, match="13"):
         ingest_month(spark, settings, 2025, 13)
+
+
+def test_decompressed_gives_plain_csv_then_cleans_up(settings: Settings) -> None:
+    """Un .gz est décompressé le temps du bloc, puis le fichier temporaire est supprimé."""
+    path = settings.paths.raw_dir / "A202501.csv.gz"
+    write_damir_file(path, ["202501;1111;1.00"])
+
+    with decompressed(path) as plain:
+        assert plain.suffix == ".csv"
+        assert plain.read_text(encoding="utf-8").startswith(HEADER)
+    assert not plain.exists()
+    assert path.exists()
+
+
+def test_decompressed_keeps_an_uncompressed_file_as_is(tmp_path: Path) -> None:
+    """Un CSV déjà non compressé est utilisé directement, et pas supprimé."""
+    plain = tmp_path / "A202501.csv"
+    plain.write_text(HEADER + "\n", encoding="utf-8")
+
+    with decompressed(plain) as used:
+        assert used == plain
+    assert plain.exists()
+
+
+def test_decompressed_cleans_up_on_error(settings: Settings) -> None:
+    """Le CSV temporaire est supprimé même si le chargement échoue."""
+    path = settings.paths.raw_dir / "A202501.csv.gz"
+    write_damir_file(path, ["202501;1111;1.00"])
+
+    with pytest.raises(RuntimeError), decompressed(path) as plain:
+        raise RuntimeError("échec simulé")
+    assert not plain.exists()
+
+
+def test_bronze_table_has_no_delta_statistics(spark: SparkSession, settings: Settings) -> None:
+    """La table bronze est créée sans statistiques Delta, et le reste après un rechargement."""
+    write_damir_file(settings.paths.raw_dir / "A202501.csv.gz", ["202501;1111;1.00"])
+
+    ingest_month(spark, settings, 2025, 1)
+    ingest_month(spark, settings, 2025, 1)
+
+    assert table_properties(spark, settings.bronze_table) == BRONZE_TABLE_PROPERTIES
+
+
+def test_existing_table_gets_the_property(spark: SparkSession, settings: Settings) -> None:
+    """Une table bronze créée avant ce réglage reçoit la propriété au chargement suivant."""
+    path = settings.paths.raw_dir / "A202501.csv.gz"
+    write_damir_file(path, ["202501;1111;1.00"])
+    # Table existante au format bronze, créée sans la propriété (comme avant ce réglage)
+    df = drop_unnamed_columns(read_raw_csv(spark, path, settings.source))
+    df = add_technical_columns(df, path.name, "202501", datetime(2026, 1, 1, tzinfo=UTC))
+    overwrite_month(df, settings.bronze_table, "202501")
+    assert table_properties(spark, settings.bronze_table) == {}
+
+    ingest_month(spark, settings, 2025, 1)
+
+    assert table_properties(spark, settings.bronze_table) == BRONZE_TABLE_PROPERTIES

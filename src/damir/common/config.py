@@ -52,11 +52,6 @@ class BronzeConfig:
     """Paramètres d'écriture de la couche bronze."""
 
     table_name: str
-    files_per_month: int
-
-    def __post_init__(self) -> None:
-        # Une surcharge par variable d'environnement arrive en texte : conversion explicite
-        object.__setattr__(self, "files_per_month", int(self.files_per_month))
 
 
 @dataclass(frozen=True)

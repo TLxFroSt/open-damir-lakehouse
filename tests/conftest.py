@@ -85,7 +85,7 @@ def settings(tmp_path: Path) -> Settings:
             csv_encoding="UTF-8",
         ),
         spark=SparkConfig(master="local[2]", app_name="test", driver_memory="1g"),
-        bronze=BronzeConfig(table_name="open_damir", files_per_month=2),
+        bronze=BronzeConfig(table_name="open_damir"),
         silver=SilverConfig(
             table_name="open_damir",
             quarantine_table_name="open_damir_quarantine",

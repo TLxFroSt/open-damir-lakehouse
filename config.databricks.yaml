@@ -27,7 +27,6 @@ spark:
 
 bronze:
   table_name: open_damir
-  files_per_month: 12
 
 silver:
   table_name: open_damir

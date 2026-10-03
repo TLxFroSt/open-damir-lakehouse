@@ -1,8 +1,12 @@
 """Couche bronze : un fichier mensuel Open DAMIR devient une partition Delta, sans retouche."""
 
+import gzip
 import logging
 import re
+import shutil
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,6 +20,36 @@ logger = logging.getLogger(__name__)
 
 # Nom donné par Spark à une colonne dont l'en-tête est vide : _c0, _c1, ...
 _UNNAMED_COLUMN = re.compile(r"_c\d+")
+
+# Pas de statistiques Delta (min/max par fichier) sur le bronze : il n'est lu qu'en entier, un
+# mois à la fois (élagage par partition). Les calculer sur 32 colonnes texte doublait le temps
+# d'écriture (mesuré sur janvier 2025 : 232 s avec, 112 s sans).
+BRONZE_TABLE_PROPERTIES = {"delta.dataSkippingNumIndexedCols": "0"}
+
+# Dossier des CSV décompressés le temps d'un chargement (sous le dossier des fichiers bruts,
+# visible des exécuteurs Spark en local comme dans un volume Databricks)
+_DECOMPRESSED_DIR = "_decompresse"
+
+
+@contextmanager
+def decompressed(path: Path) -> Iterator[Path]:
+    """CSV non compressé correspondant à `path`, supprimé à la sortie du bloc.
+
+    Un .gz n'est pas découpable : Spark le lit sur un seul cœur (417 s sur 617 s mesurés pour
+    janvier 2025). Décompressé d'abord (environ 30 s), le CSV est lu en parallèle par tous les
+    cœurs, sans repartition ni shuffle. Un fichier déjà non compressé est utilisé tel quel.
+    """
+    if path.suffix != ".gz":
+        yield path
+        return
+    target = path.parent / _DECOMPRESSED_DIR / path.stem
+    target.parent.mkdir(exist_ok=True)
+    try:
+        with gzip.open(path, "rb") as source, target.open("wb") as destination:
+            shutil.copyfileobj(source, destination, length=16 * 1024 * 1024)
+        yield target
+    finally:
+        target.unlink(missing_ok=True)
 
 
 def read_raw_csv(spark: SparkSession, path: Path, source: SourceConfig) -> DataFrame:
@@ -103,12 +137,11 @@ def ingest_month(
     logger.info("Chargement de %s dans %s (partition %s)", file_name, table.location, year_month)
     started = time.perf_counter()
 
-    df = read_raw_csv(spark, raw_path, settings.source)
-    df = drop_unnamed_columns(df)
-    df = add_technical_columns(df, file_name, year_month, ingested_at or datetime.now(UTC))
-    # Un .gz n'est pas découpable : Spark le lit en une seule partition (un seul cœur).
-    # On répartit les lignes pour que l'écriture Parquet se fasse en parallèle.
-    overwrite_month(df.repartition(settings.bronze.files_per_month), table, year_month)
+    with decompressed(raw_path) as csv_path:
+        df = read_raw_csv(spark, csv_path, settings.source)
+        df = drop_unnamed_columns(df)
+        df = add_technical_columns(df, file_name, year_month, ingested_at or datetime.now(UTC))
+        overwrite_month(df, table, year_month, table_properties=BRONZE_TABLE_PROPERTIES)
 
     rows = rows_written_by_last_commit(spark, table)
     logger.info("%s lignes écrites en %.0f s", f"{rows:,}", time.perf_counter() - started)

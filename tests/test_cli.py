@@ -27,7 +27,7 @@ def config_path(tmp_path: Path) -> Path:
             "csv_encoding": "UTF-8",
         },
         "spark": {"master": "local[1]", "app_name": "test", "driver_memory": "1g"},
-        "bronze": {"table_name": "open_damir", "files_per_month": 1},
+        "bronze": {"table_name": "open_damir"},
         "silver": {
             "table_name": "open_damir",
             "quarantine_table_name": "open_damir_quarantine",
