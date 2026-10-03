@@ -28,7 +28,7 @@ table entière en 0,4 s, avec les types attendus (`DECIMAL(18,2)`, `DATE`).
 4. **Tests sans paquet externe.** Deux tests génériques écrits dans le projet : `unique_grain`
    (grain d'une table) et `matches_silver_totals` (total mensuel du gold = total du silver).
    Pas de `dbt deps`, donc pas d'accès réseau supplémentaire en CI.
-5. **Libellés après agrégation.** Les tables agrègent d'abord puis décodent (macro `libelle`) :
+5. **Libellés après agrégation.** Les tables agrègent d'abord puis décodent (macro `nomenclature`) :
    quelques centaines de lignes à décoder au lieu de 35 millions. Un code sans libellé donne un
    libellé nul et un avertissement, jamais une ligne perdue.
 
@@ -37,5 +37,5 @@ table entière en 0,4 s, avec les types attendus (`DECIMAL(18,2)`, `DATE`).
 - La couche gold se construit en 7 s sur les données réelles, tests compris.
 - La CI teste le SQL de bout en bout : un silver synthétique est écrit par Spark puis `dbt build`
   est exécuté dessus.
-- Restera à ajouter pour Databricks : une cible `dbt-databricks` dans le profil et des sources
-  pointant vers les tables du catalogue au lieu de `delta_scan`.
+- Déploiement Databricks réalisé ensuite (ADR 0004) : la portabilité supposée ici n'était pas
+  complète, les sous-requêtes scalaires corrélées ont dû être remplacées par des `LEFT JOIN`.

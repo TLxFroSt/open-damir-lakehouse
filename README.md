@@ -6,7 +6,8 @@
 Lakehouse open source sur **Open DAMIR**, la base des remboursements de l'Assurance Maladie
 (tous régimes, un fichier CSV par mois, ~35 millions de lignes chacun). Architecture médaillon
 bronze / silver / gold avec PySpark, Delta Lake et dbt, testée et documentée comme un projet de
-production.
+production. Le même code tourne en local et sur **Databricks** (serverless, Unity Catalog,
+Asset Bundle), avec des résultats identiques au centime.
 
 ## En chiffres
 
@@ -17,9 +18,11 @@ Sur janvier et février 2025 :
 | Lignes traitées | **71,4 millions** (36,6 M + 34,7 M) |
 | Dépense couverte | **31,6 Md€** (16,2 Md€ en janvier) |
 | Rapprochement bronze → silver → gold | **au centime près**, vérifié à chaque exécution |
+| Local et Databricks | **résultats identiques** (lignes, montants, tables gold) |
 | Valeurs de codes décodées | **99,95 %** (36 colonnes sur 39 à 100 %) |
-| Temps par mois | bronze ~10 min · silver ~7 min · gold **7 s** (PC 6 cœurs, 16 Go) |
-| Tests | 88 tests pytest + 23 tests dbt, CI GitHub Actions |
+| Temps par mois, local | bronze ~10 min · silver ~7 min · gold **7 s** (PC 6 cœurs, 16 Go) |
+| Temps par mois, Databricks | bronze ~11 min · silver ~1,5 min · gold ~1,5 min (serverless) |
+| Tests | 98 tests pytest + 23 tests dbt, CI GitHub Actions |
 
 ## Architecture
 
@@ -35,7 +38,7 @@ flowchart LR
         nomenclatures[("Nomenclatures<br/>libellés des codes")]
     end
 
-    subgraph dbt["dbt + DuckDB"]
+    subgraph dbt["dbt (DuckDB en local, Databricks SQL)"]
         gold[("Gold<br/>dépenses par prestation<br/>dépenses par région")]
     end
 
@@ -75,6 +78,11 @@ Chaque décision est expliquée dans un ADR (`docs/adr/`).
 - **dbt sur DuckDB en local.** DuckDB lit les tables Delta du silver directement et agrège les
   71 M de lignes en 0,4 s ; le SQL reste portable vers Databricks.
   → [ADR 0003](docs/adr/0003-gold-dbt-duckdb.md)
+- **Un même code, local ou Databricks.** `storage.mode` choisit entre dossiers Delta (local) et
+  tables Unity Catalog (Databricks) ; le wheel ne dépend pas de PySpark, fourni par le serverless.
+  Le premier déploiement a montré que Databricks SQL refuse des sous-requêtes corrélées que
+  DuckDB et Spark 4.2 acceptent : les libellés passent désormais par des `LEFT JOIN`.
+  → [ADR 0004](docs/adr/0004-deploiement-databricks.md)
 - **Démarrage de Spark fiabilisé sous Windows.** Certaines sessions se figeaient une dizaine de
   minutes au démarrage. Un vidage de threads a mené au bug JDK
   [JDK-8304182](https://bugs.openjdk.org/browse/JDK-8304182) (lecture bloquante dans un
@@ -121,6 +129,21 @@ uv run pytest                                             # tests (~6 min)
 Les chemins se règlent dans [`config.yaml`](config.yaml), ou par variable d'environnement
 `DAMIR_<SECTION>_<CLE>` (par exemple `DAMIR_PATHS_RAW_DIR`).
 
+## Déploiement sur Databricks
+
+Avec la [CLI Databricks](https://docs.databricks.com/dev-tools/cli/) connectée à un workspace
+(`databricks auth login --host <url du workspace>`) :
+
+```bash
+databricks bundle deploy               # schémas bronze/silver/gold, volume raw, job
+databricks fs cp data/raw/A202501.csv.gz dbfs:/Volumes/workspace/bronze/raw/
+databricks bundle run damir_pipeline   # bronze -> silver -> dbt build (year, months)
+```
+
+Le job ([`databricks.yml`](databricks.yml)) utilise
+[`config.databricks.yaml`](config.databricks.yaml) : tables `workspace.bronze.*`,
+`workspace.silver.*` et `workspace.gold.*` dans Unity Catalog.
+
 ## Structure
 
 ```
@@ -129,8 +152,9 @@ src/damir/
   silver/      typage, quarantaine, rapprochement, nomenclatures, CLI
   gold/        lancement de dbt avec la configuration du projet
   reference/   construction du fichier de nomenclatures
-  common/      configuration, session Spark, schéma silver, écritures Delta
+  common/      configuration, session Spark, schéma silver, tables et écritures Delta
 dbt/           modèles gold (staging, marts), macros, tests génériques
+databricks.yml Asset Bundle : schémas, volume et job Databricks
 reference/     nomenclatures versionnées (générées) et compléments justifiés
 docs/          colonnes du silver (générée) et ADR
 tests/         tests unitaires et d'intégration sur données synthétiques
@@ -141,8 +165,7 @@ tests/         tests unitaires et d'intégration sur données synthétiques
 - Trois codes restent sans libellé faute de source (`PRS_PDS_QCP = 34`,
   `PRS_REM_TYP = 11/12/13`, `DDP_SPE_COD = 46`) ; le libellé de la région `5` (Corse et
   outre-mer) est déduit des données, à confirmer.
-- À venir : déploiement sur Databricks (cible `dbt-databricks`, Asset Bundles) et
-  téléchargement automatique des fichiers mensuels.
+- À venir : téléchargement automatique des fichiers mensuels et planification du job.
 
 ## Données et licences
 
