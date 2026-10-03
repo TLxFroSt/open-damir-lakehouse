@@ -6,11 +6,11 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-from delta.tables import DeltaTable
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
 from damir.common.config import Settings, SourceConfig
+from damir.common.delta import overwrite_month, rows_written_by_last_commit
 
 logger = logging.getLogger(__name__)
 
@@ -52,22 +52,6 @@ def add_technical_columns(
             "_ingested_at": F.lit(ingested_at),
             "_year_month": F.lit(year_month),
         }
-    )
-
-
-def write_bronze(df: DataFrame, table_path: str, year_month: str) -> None:
-    """Écrit un mois dans la table Delta en remplaçant uniquement sa partition.
-
-    Idempotence : relancer un mois remplace ses lignes au lieu de les ajouter.
-    Un MERGE ne conviendrait pas : les lignes DAMIR sont des agrégats sans clé
-    unique, deux lignes identiques peuvent être légitimes.
-    """
-    (
-        df.write.format("delta")
-        .mode("overwrite")
-        .option("replaceWhere", f"_year_month = '{year_month}'")
-        .partitionBy("_year_month")
-        .save(table_path)
     )
 
 
@@ -115,7 +99,7 @@ def ingest_month(
 
     file_name = raw_path.name
     year_month = f"{year}{month:02d}"
-    table_path = (settings.paths.bronze_dir / settings.bronze.table_name).as_posix()
+    table_path = settings.bronze_table_path
     logger.info("Chargement de %s dans %s (partition %s)", file_name, table_path, year_month)
     started = time.perf_counter()
 
@@ -124,17 +108,8 @@ def ingest_month(
     df = add_technical_columns(df, file_name, year_month, ingested_at or datetime.now(UTC))
     # Un .gz n'est pas découpable : Spark le lit en une seule partition (un seul cœur).
     # On répartit les lignes pour que l'écriture Parquet se fasse en parallèle.
-    write_bronze(df.repartition(settings.bronze.files_per_month), table_path, year_month)
+    overwrite_month(df.repartition(settings.bronze.files_per_month), table_path, year_month)
 
-    rows = _rows_written_by_last_commit(spark, table_path)
+    rows = rows_written_by_last_commit(spark, table_path)
     logger.info("%s lignes écrites en %.0f s", f"{rows:,}", time.perf_counter() - started)
     return rows
-
-
-def _rows_written_by_last_commit(spark: SparkSession, table_path: str) -> int:
-    """Nombre de lignes écrites par le dernier commit, lu dans l'historique Delta.
-
-    Évite un count() qui relirait toute la partition.
-    """
-    last_commit = DeltaTable.forPath(spark, table_path).history(1).first()
-    return int(last_commit["operationMetrics"]["numOutputRows"])

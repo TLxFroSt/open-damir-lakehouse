@@ -18,6 +18,7 @@ class PathsConfig:
 
     raw_dir: Path
     bronze_dir: Path
+    silver_dir: Path
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,14 @@ class BronzeConfig:
 
 
 @dataclass(frozen=True)
+class SilverConfig:
+    """Noms des tables de la couche silver."""
+
+    table_name: str
+    quarantine_table_name: str
+
+
+@dataclass(frozen=True)
 class Settings:
     """Configuration complète du projet."""
 
@@ -62,6 +71,22 @@ class Settings:
     source: SourceConfig
     spark: SparkConfig
     bronze: BronzeConfig
+    silver: SilverConfig
+
+    @property
+    def bronze_table_path(self) -> str:
+        """Chemin de la table Delta bronze."""
+        return (self.paths.bronze_dir / self.bronze.table_name).as_posix()
+
+    @property
+    def silver_table_path(self) -> str:
+        """Chemin de la table Delta silver."""
+        return (self.paths.silver_dir / self.silver.table_name).as_posix()
+
+    @property
+    def quarantine_table_path(self) -> str:
+        """Chemin de la table Delta de quarantaine (lignes rejetées du silver)."""
+        return (self.paths.silver_dir / self.silver.quarantine_table_name).as_posix()
 
 
 def load_settings(
@@ -83,12 +108,14 @@ def load_settings(
     source = _with_env_overrides("source", raw.get("source", {}), env)
     spark = _with_env_overrides("spark", raw.get("spark", {}), env)
     bronze = _with_env_overrides("bronze", raw.get("bronze", {}), env)
+    silver = _with_env_overrides("silver", raw.get("silver", {}), env)
 
     return Settings(
         paths=PathsConfig(**{key: _resolve(path.parent, value) for key, value in paths.items()}),
         source=SourceConfig(**source),
         spark=SparkConfig(**spark),
         bronze=BronzeConfig(**bronze),
+        silver=SilverConfig(**silver),
     )
 
 

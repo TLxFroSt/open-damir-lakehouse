@@ -14,7 +14,7 @@ REPO_CONFIG = Path(__file__).parents[1] / "config.yaml"
 def write_config(directory: Path, **overrides: dict[str, Any]) -> Path:
     """Écrit un config.yaml minimal valide, sections remplaçables par `overrides`."""
     content = {
-        "paths": {"raw_dir": "raw", "bronze_dir": "bronze"},
+        "paths": {"raw_dir": "raw", "bronze_dir": "bronze", "silver_dir": "silver"},
         "source": {
             "file_name_template": "A{year}{month:02d}.csv.gz",
             "csv_separator": ";",
@@ -22,6 +22,7 @@ def write_config(directory: Path, **overrides: dict[str, Any]) -> Path:
         },
         "spark": {"master": "local[1]", "app_name": "test", "driver_memory": "1g"},
         "bronze": {"table_name": "open_damir", "files_per_month": 2},
+        "silver": {"table_name": "open_damir", "quarantine_table_name": "open_damir_quarantine"},
     }
     content.update(overrides)
     path = directory / "config.yaml"

@@ -2,11 +2,20 @@
 
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
+from damir.common.config import (
+    BronzeConfig,
+    PathsConfig,
+    Settings,
+    SilverConfig,
+    SourceConfig,
+    SparkConfig,
+)
 from damir.common.schemas import DAMIR_SOURCE_COLUMNS, TECHNICAL_FIELDS
 from damir.common.spark import build_spark_session
 
@@ -56,3 +65,23 @@ def make_bronze(spark: SparkSession) -> Callable[..., DataFrame]:
         return spark.createDataFrame(rows, schema)
 
     return make
+
+
+@pytest.fixture
+def settings(tmp_path: Path) -> Settings:
+    """Configuration pointant vers des dossiers temporaires."""
+    return Settings(
+        paths=PathsConfig(
+            raw_dir=tmp_path / "raw",
+            bronze_dir=tmp_path / "bronze",
+            silver_dir=tmp_path / "silver",
+        ),
+        source=SourceConfig(
+            file_name_template="A{year}{month:02d}.csv.gz",
+            csv_separator=";",
+            csv_encoding="UTF-8",
+        ),
+        spark=SparkConfig(master="local[2]", app_name="test", driver_memory="1g"),
+        bronze=BronzeConfig(table_name="open_damir", files_per_month=2),
+        silver=SilverConfig(table_name="open_damir", quarantine_table_name="open_damir_quarantine"),
+    )

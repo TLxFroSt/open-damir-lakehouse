@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-from damir.common.config import BronzeConfig, PathsConfig, Settings, SourceConfig, SparkConfig
+from damir.common.config import Settings
 from damir.ingestion.bronze import (
     add_technical_columns,
     drop_unnamed_columns,
@@ -30,25 +30,9 @@ def write_damir_file(path: Path, rows: list[str]) -> None:
             f.write(row + ";\n")
 
 
-@pytest.fixture
-def settings(tmp_path: Path) -> Settings:
-    """Configuration pointant vers des dossiers temporaires."""
-    return Settings(
-        paths=PathsConfig(raw_dir=tmp_path / "raw", bronze_dir=tmp_path / "bronze"),
-        source=SourceConfig(
-            file_name_template="A{year}{month:02d}.csv.gz",
-            csv_separator=";",
-            csv_encoding="UTF-8",
-        ),
-        spark=SparkConfig(master="local[2]", app_name="test", driver_memory="1g"),
-        bronze=BronzeConfig(table_name="open_damir", files_per_month=2),
-    )
-
-
 def count_month(spark: SparkSession, settings: Settings, year_month: str) -> int:
     """Nombre de lignes d'un mois dans la table bronze."""
-    table_path = (settings.paths.bronze_dir / settings.bronze.table_name).as_posix()
-    df = spark.read.format("delta").load(table_path)
+    df = spark.read.format("delta").load(settings.bronze_table_path)
     return df.where(F.col("_year_month") == year_month).count()
 
 

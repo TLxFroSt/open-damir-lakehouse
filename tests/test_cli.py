@@ -6,13 +6,14 @@ import pytest
 import yaml
 
 from damir.ingestion.__main__ import main, parse_args
+from damir.silver.__main__ import main as silver_main
 
 
 @pytest.fixture
 def config_path(tmp_path: Path) -> Path:
     """Fichier de config pointant vers un dossier raw vide."""
     content = {
-        "paths": {"raw_dir": "raw", "bronze_dir": "bronze"},
+        "paths": {"raw_dir": "raw", "bronze_dir": "bronze", "silver_dir": "silver"},
         "source": {
             "file_name_template": "A{year}{month:02d}.csv.gz",
             "csv_separator": ";",
@@ -20,6 +21,7 @@ def config_path(tmp_path: Path) -> Path:
         },
         "spark": {"master": "local[1]", "app_name": "test", "driver_memory": "1g"},
         "bronze": {"table_name": "open_damir", "files_per_month": 1},
+        "silver": {"table_name": "open_damir", "quarantine_table_name": "open_damir_quarantine"},
     }
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(content), encoding="utf-8")
@@ -58,3 +60,19 @@ def test_usage_error_exits_before_spark(
     assert caplog.records[-1].levelname == "ERROR"
     # Logger dans la hiérarchie « damir » (réglée en INFO), pas « __main__ »
     assert caplog.records[-1].name == "damir.ingestion"
+
+
+@pytest.mark.parametrize(
+    ("month", "message"),
+    [("13", "Mois invalide"), ("1", "Table bronze introuvable")],
+)
+def test_silver_usage_error_exits_before_spark(
+    config_path: Path, month: str, message: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Silver : mois invalide ou bronze absent -> code 1 et message clair, sans démarrer Spark."""
+    with pytest.raises(SystemExit) as exit_info:
+        silver_main(["--year", "2025", "--month", month, "--config", str(config_path)])
+
+    assert exit_info.value.code == 1
+    assert caplog.records[-1].name == "damir.silver"
+    assert message in caplog.records[-1].getMessage()

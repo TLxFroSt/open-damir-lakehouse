@@ -6,6 +6,7 @@
 paths:
   raw_dir: data/raw # fichiers mensuels téléchargés (A202501.csv.gz, ...)
   bronze_dir: data/bronze # tables Delta brutes, partitionnées par _year_month
+  silver_dir: data/silver # tables Delta typées et quarantaine
 
 source:
   # Nom des fichiers mensuels : « A » + année + mois sur 2 chiffres
@@ -24,3 +25,8 @@ bronze:
   # Un .gz n'est pas découpable : Spark le lit sur un seul cœur. Les lignes sont
   # ensuite réparties en N fichiers pour écrire le Parquet en parallèle (≈ nb de cœurs).
   files_per_month: 12
+
+silver:
+  table_name: open_damir
+  # Lignes rejetées (jamais supprimées), avec leurs motifs de rejet
+  quarantine_table_name: open_damir_quarantine
