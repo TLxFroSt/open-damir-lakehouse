@@ -13,17 +13,21 @@ with par_region as (
 )
 
 select
-    mois_traitement,
-    region_residence_beneficiaire,
-    {{ libelle('BEN_RES_REG', 'par_region.region_residence_beneficiaire') }}
-        as libelle_region_residence_beneficiaire,
-    nombre_lignes,
-    montant_depense,
-    base_remboursement,
-    montant_rembourse,
-    montant_depassement,
-    montant_depense - montant_rembourse as montant_non_rembourse,
-    {{ ratio('montant_rembourse', 'montant_depense') }} as taux_remboursement_effectif,
-    {{ ratio('montant_depense', 'sum(montant_depense) over (partition by mois_traitement)') }}
-        as part_depense_nationale
+    par_region.mois_traitement,
+    par_region.region_residence_beneficiaire,
+    lib.libelle as libelle_region_residence_beneficiaire,
+    par_region.nombre_lignes,
+    par_region.montant_depense,
+    par_region.base_remboursement,
+    par_region.montant_rembourse,
+    par_region.montant_depassement,
+    par_region.montant_depense - par_region.montant_rembourse as montant_non_rembourse,
+    {{ ratio('par_region.montant_rembourse', 'par_region.montant_depense') }}
+        as taux_remboursement_effectif,
+    {{ ratio(
+        'par_region.montant_depense',
+        'sum(par_region.montant_depense) over (partition by par_region.mois_traitement)'
+    ) }} as part_depense_nationale
 from par_region
+left join {{ nomenclature('BEN_RES_REG') }} as lib
+    on lib.code = par_region.region_residence_beneficiaire

@@ -10,9 +10,11 @@ sources:
     tables:
       - name: open_damir
         description: Dépenses Open DAMIR typées, une partition par mois de traitement.
-        meta:
-          external_location: "delta_scan('{{ var('silver_table_path') }}')"
+        config:
+          meta:
+            external_location: "delta_scan('{{ var('silver_table_path') }}')"
       - name: nomenclatures
         description: Libellés des codes DAMIR (reference/nomenclatures.csv).
-        meta:
-          external_location: "delta_scan('{{ var('nomenclatures_table_path') }}')"
+        config:
+          meta:
+            external_location: "delta_scan('{{ var('nomenclatures_table_path') }}')"

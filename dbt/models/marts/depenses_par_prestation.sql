@@ -14,15 +14,19 @@ with par_prestation as (
 )
 
 select
-    mois_traitement,
-    nature_prestation,
-    {{ libelle('PRS_NAT', 'par_prestation.nature_prestation') }} as libelle_nature_prestation,
-    nombre_lignes,
-    montant_depense,
-    base_remboursement,
-    montant_rembourse,
-    montant_depassement,
-    montant_depense - montant_rembourse as montant_non_rembourse,
-    {{ ratio('montant_rembourse', 'montant_depense') }} as taux_remboursement_effectif,
-    {{ ratio('montant_depassement', 'montant_depense') }} as part_depassement
+    par_prestation.mois_traitement,
+    par_prestation.nature_prestation,
+    lib.libelle as libelle_nature_prestation,
+    par_prestation.nombre_lignes,
+    par_prestation.montant_depense,
+    par_prestation.base_remboursement,
+    par_prestation.montant_rembourse,
+    par_prestation.montant_depassement,
+    par_prestation.montant_depense - par_prestation.montant_rembourse as montant_non_rembourse,
+    {{ ratio('par_prestation.montant_rembourse', 'par_prestation.montant_depense') }}
+        as taux_remboursement_effectif,
+    {{ ratio('par_prestation.montant_depassement', 'par_prestation.montant_depense') }}
+        as part_depassement
 from par_prestation
+left join {{ nomenclature('PRS_NAT') }} as lib
+    on lib.code = par_prestation.nature_prestation
