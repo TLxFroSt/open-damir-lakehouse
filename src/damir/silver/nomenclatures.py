@@ -4,6 +4,7 @@ La table de faits garde les codes ; les libellés sont joints à la lecture (cou
 Un code sans libellé n'est jamais un motif de rejet : il est signalé dans les logs.
 """
 
+import csv
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -27,10 +28,17 @@ CODE_COLUMNS = [(s.name, s.sources[0]) for s in SILVER_COLUMNS if isinstance(s.d
 
 
 def read_nomenclatures(spark: SparkSession, csv_path: Path) -> DataFrame:
-    """Lit reference/nomenclatures.csv avec un schéma explicite."""
-    return spark.read.csv(
-        csv_path.as_posix(), schema=NOMENCLATURES_SCHEMA, header=True, sep=";", encoding="UTF-8"
-    )
+    """Lit reference/nomenclatures.csv avec un schéma explicite.
+
+    Lecture en Python (quelques milliers de lignes) : fonctionne à l'identique en local et sur
+    Databricks, où le fichier vient des fichiers du workspace et non d'un stockage Spark.
+    """
+    with csv_path.open(encoding="utf-8", newline="") as f:
+        rows = [
+            tuple(row[name] for name in NOMENCLATURES_SCHEMA.names)
+            for row in csv.DictReader(f, delimiter=";")
+        ]
+    return spark.createDataFrame(rows, NOMENCLATURES_SCHEMA)
 
 
 def write_nomenclatures(nomenclatures: DataFrame, table: TableRef) -> int:

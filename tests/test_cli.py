@@ -126,3 +126,18 @@ def test_gold_refuses_catalog_mode(config_path: Path, caplog: pytest.LogCaptureF
 
     assert exit_info.value.code == 1
     assert "Mode catalogue" in caplog.records[-1].getMessage()
+
+
+@pytest.mark.parametrize(
+    "month_args",
+    [["1", "2", "3"], ["1,2,3"], ["1,2", "3"]],
+)
+def test_months_as_list_or_comma_separated(month_args: list[str]) -> None:
+    """--month accepte « 1 2 3 », « 1,2,3 » (paramètre de job Databricks) ou un mélange."""
+    assert parse_args(["--year", "2025", "--month", *month_args]).month == [1, 2, 3]
+
+
+def test_non_numeric_month_is_a_usage_error() -> None:
+    """Un mois non numérique est refusé par argparse."""
+    with pytest.raises(SystemExit):
+        parse_args(["--year", "2025", "--month", "janvier"])

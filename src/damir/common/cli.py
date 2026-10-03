@@ -10,16 +10,24 @@ from damir.common.config import Settings
 from damir.common.spark import build_spark_session
 
 
+def _months(value: str) -> list[int]:
+    """« 1 » ou « 1,2,3 » -> liste d'entiers (un paramètre de job Databricks est un seul texte)."""
+    try:
+        return [int(part) for part in value.split(",") if part.strip()]
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"mois invalide : {value!r}") from None
+
+
 def parse_month_args(description: str, argv: list[str] | None = None) -> argparse.Namespace:
     """Arguments communs : --year, un ou plusieurs --month, --config."""
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--year", type=int, required=True, help="année, par exemple 2025")
     parser.add_argument(
         "--month",
-        type=int,
+        type=_months,
         nargs="+",
         required=True,
-        help="un ou plusieurs mois de 1 à 12, par exemple : --month 1 2 3",
+        help="un ou plusieurs mois de 1 à 12 : --month 1 2 3 ou --month 1,2,3",
     )
     parser.add_argument(
         "--config",
@@ -27,7 +35,9 @@ def parse_month_args(description: str, argv: list[str] | None = None) -> argpars
         default=None,
         help="fichier de configuration (défaut : variable DAMIR_CONFIG, sinon ./config.yaml)",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    args.month = [month for group in args.month for month in group]
+    return args
 
 
 def configure_logging() -> None:

@@ -1,0 +1,35 @@
+# Configuration pour Databricks (job du bundle, voir databricks.yml).
+# Tables Unity Catalog workspace.bronze.* / workspace.silver.*, fichiers dans un volume.
+# Les chemins relatifs partent du dossier de ce fichier (fichiers du bundle dans le workspace).
+
+paths:
+  raw_dir: /Volumes/workspace/bronze/raw # fichiers mensuels déposés dans le volume
+  nomenclatures_file: reference/nomenclatures.csv # synchronisé avec les fichiers du bundle
+  # Inutilisés en mode catalog (tables Unity Catalog, gold construit par la tâche dbt)
+  bronze_dir: non-utilise/bronze
+  silver_dir: non-utilise/silver
+  gold_db: non-utilise/gold.duckdb
+
+storage:
+  mode: catalog
+  catalog: workspace
+
+source:
+  file_name_template: "A{year}{month:02d}.csv.gz"
+  csv_separator: ";"
+  csv_encoding: UTF-8
+
+spark:
+  # Inutilisés en mode catalog : la session est fournie par Databricks (serverless)
+  master: non-utilise
+  app_name: open-damir-lakehouse
+  driver_memory: non-utilise
+
+bronze:
+  table_name: open_damir
+  files_per_month: 12
+
+silver:
+  table_name: open_damir
+  quarantine_table_name: open_damir_quarantine
+  nomenclatures_table_name: nomenclatures

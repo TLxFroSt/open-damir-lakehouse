@@ -27,6 +27,9 @@ dbt/logs/
 dbt/dbt_packages/
 dbt/.user.yml
 
+# Databricks CLI (état local du bundle)
+.databricks/
+
 # Secrets et configuration locale
 .env
 *.local.yaml

@@ -1,0 +1,117 @@
+# Databricks Asset Bundle : schémas, volume et job du pipeline (bronze -> silver -> gold).
+# Déployer : databricks bundle deploy   ·   Lancer : databricks bundle run damir_pipeline
+bundle:
+  name: open-damir-lakehouse
+
+variables:
+  catalog:
+    description: Catalogue Unity Catalog des tables du projet
+    default: workspace
+  warehouse_id:
+    description: Entrepôt SQL serverless utilisé par la tâche dbt
+    lookup:
+      warehouse: Serverless Starter Warehouse
+
+artifacts:
+  damir_wheel:
+    type: whl
+    build: uv build --wheel
+    path: .
+
+resources:
+  schemas:
+    bronze:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: Fichiers Open DAMIR tels quels (texte) et volume des fichiers bruts
+    silver:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: Dépenses typées, quarantaine et nomenclatures
+    gold:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: Agrégats métier construits par dbt
+
+  volumes:
+    raw:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.bronze.name}
+      name: raw
+      volume_type: MANAGED
+      comment: Fichiers mensuels A<année><mois>.csv.gz
+
+  jobs:
+    damir_pipeline:
+      name: damir-pipeline
+      parameters:
+        - name: year
+          default: "2025"
+        - name: months
+          default: "1,2"
+
+      environments:
+        # Paquet du projet (wheel) ; PySpark et Delta sont fournis par l'environnement serverless
+        - environment_key: damir
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ./dist/*.whl
+        - environment_key: dbt
+          spec:
+            environment_version: "4"
+            dependencies:
+              - dbt-databricks>=1.11,<2
+
+      tasks:
+        - task_key: bronze
+          environment_key: damir
+          python_wheel_task:
+            package_name: open_damir_lakehouse
+            entry_point: damir-ingestion
+            parameters:
+              - --config
+              - ${workspace.file_path}/config.databricks.yaml
+              - --year
+              - "{{job.parameters.year}}"
+              - --month
+              - "{{job.parameters.months}}"
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          environment_key: damir
+          python_wheel_task:
+            package_name: open_damir_lakehouse
+            entry_point: damir-silver
+            parameters:
+              - --config
+              - ${workspace.file_path}/config.databricks.yaml
+              - --year
+              - "{{job.parameters.year}}"
+              - --month
+              - "{{job.parameters.months}}"
+
+        - task_key: gold
+          depends_on:
+            - task_key: silver
+          environment_key: dbt
+          dbt_task:
+            project_directory: ${workspace.file_path}/dbt
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+            catalog: ${var.catalog}
+            schema: gold
+            commands:
+              - dbt build
+
+# Fichiers locaux à ne pas synchroniser vers le workspace (en plus de ceux ignorés par git)
+sync:
+  exclude:
+    - CLAUDE.md
+
+targets:
+  # Pas de « mode: development » : il préfixerait les noms de schémas (dev_<utilisateur>_bronze...)
+  # et ne correspondrait plus à config.databricks.yaml
+  dev:
+    default: true

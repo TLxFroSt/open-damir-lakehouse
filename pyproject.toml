@@ -12,6 +12,12 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
+# Points d'entrée du wheel : lancés par les tâches « Python wheel » du job Databricks
+[project.scripts]
+damir-ingestion = "damir.ingestion.__main__:main"
+damir-silver = "damir.silver.__main__:main"
+damir-gold = "damir.gold.__main__:main"
+
 [dependency-groups]
 # Exécution locale : Spark, Delta et dbt sur DuckDB (installés par défaut par « uv sync »)
 local = [
