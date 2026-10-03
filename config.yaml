@@ -7,6 +7,7 @@ paths:
   raw_dir: data/raw # fichiers mensuels téléchargés (A202501.csv.gz, ...)
   bronze_dir: data/bronze # tables Delta brutes, partitionnées par _year_month
   silver_dir: data/silver # tables Delta typées et quarantaine
+  nomenclatures_file: reference/nomenclatures.csv # libellés des codes, versionné
 
 source:
   # Nom des fichiers mensuels : « A » + année + mois sur 2 chiffres
@@ -30,3 +31,5 @@ silver:
   table_name: open_damir
   # Lignes rejetées (jamais supprimées), avec leurs motifs de rejet
   quarantine_table_name: open_damir_quarantine
+  # Libellés des codes DAMIR, rechargés depuis nomenclatures_file à chaque exécution
+  nomenclatures_table_name: nomenclatures

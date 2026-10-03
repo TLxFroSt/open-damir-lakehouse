@@ -75,6 +75,7 @@ def settings(tmp_path: Path) -> Settings:
             raw_dir=tmp_path / "raw",
             bronze_dir=tmp_path / "bronze",
             silver_dir=tmp_path / "silver",
+            nomenclatures_file=tmp_path / "nomenclatures.csv",
         ),
         source=SourceConfig(
             file_name_template="A{year}{month:02d}.csv.gz",
@@ -83,5 +84,9 @@ def settings(tmp_path: Path) -> Settings:
         ),
         spark=SparkConfig(master="local[2]", app_name="test", driver_memory="1g"),
         bronze=BronzeConfig(table_name="open_damir", files_per_month=2),
-        silver=SilverConfig(table_name="open_damir", quarantine_table_name="open_damir_quarantine"),
+        silver=SilverConfig(
+            table_name="open_damir",
+            quarantine_table_name="open_damir_quarantine",
+            nomenclatures_table_name="nomenclatures",
+        ),
     )

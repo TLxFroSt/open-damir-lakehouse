@@ -12,6 +12,7 @@ from damir.common.cli import (
 )
 from damir.common.config import load_settings
 from damir.silver.job import build_silver_month
+from damir.silver.nomenclatures import known_codes, read_nomenclatures, write_nomenclatures
 
 # Nom explicite : lancé avec -m, __name__ vaut « __main__ », hors de la hiérarchie « damir »
 logger = logging.getLogger("damir.silver")
@@ -33,13 +34,22 @@ def main(argv: list[str] | None = None) -> None:
         check_months(args.month)
         if not Path(settings.bronze_table_path, "_delta_log").is_dir():
             raise FileNotFoundError(f"Table bronze introuvable : {settings.bronze_table_path}")
+        if not settings.paths.nomenclatures_file.is_file():
+            raise FileNotFoundError(
+                f"Fichier de nomenclatures introuvable : {settings.paths.nomenclatures_file}"
+            )
     except (FileNotFoundError, ValueError) as error:
         logger.error("%s", error)
         raise SystemExit(1) from None
 
     spark = spark_from_settings(settings)
     try:
-        results = [build_silver_month(spark, settings, args.year, m) for m in args.month]
+        # Table des libellés rechargée depuis le fichier versionné, une fois par exécution
+        nomenclatures = read_nomenclatures(spark, settings.paths.nomenclatures_file)
+        rows = write_nomenclatures(nomenclatures, settings.nomenclatures_table_path)
+        logger.info("Nomenclatures : %s libellés chargés", f"{rows:,}")
+        known = known_codes(nomenclatures)
+        results = [build_silver_month(spark, settings, args.year, m, known) for m in args.month]
     finally:
         spark.stop()
     logger.info(

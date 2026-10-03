@@ -13,7 +13,12 @@ from damir.silver.__main__ import main as silver_main
 def config_path(tmp_path: Path) -> Path:
     """Fichier de config pointant vers un dossier raw vide."""
     content = {
-        "paths": {"raw_dir": "raw", "bronze_dir": "bronze", "silver_dir": "silver"},
+        "paths": {
+            "raw_dir": "raw",
+            "bronze_dir": "bronze",
+            "silver_dir": "silver",
+            "nomenclatures_file": "nomenclatures.csv",
+        },
         "source": {
             "file_name_template": "A{year}{month:02d}.csv.gz",
             "csv_separator": ";",
@@ -21,7 +26,11 @@ def config_path(tmp_path: Path) -> Path:
         },
         "spark": {"master": "local[1]", "app_name": "test", "driver_memory": "1g"},
         "bronze": {"table_name": "open_damir", "files_per_month": 1},
-        "silver": {"table_name": "open_damir", "quarantine_table_name": "open_damir_quarantine"},
+        "silver": {
+            "table_name": "open_damir",
+            "quarantine_table_name": "open_damir_quarantine",
+            "nomenclatures_table_name": "nomenclatures",
+        },
     }
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(content), encoding="utf-8")
@@ -76,3 +85,16 @@ def test_silver_usage_error_exits_before_spark(
     assert exit_info.value.code == 1
     assert caplog.records[-1].name == "damir.silver"
     assert message in caplog.records[-1].getMessage()
+
+
+def test_silver_missing_nomenclatures_exits_before_spark(
+    config_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Silver : bronze présent mais fichier de nomenclatures absent -> code 1, sans Spark."""
+    (config_path.parent / "bronze" / "open_damir" / "_delta_log").mkdir(parents=True)
+
+    with pytest.raises(SystemExit) as exit_info:
+        silver_main(["--year", "2025", "--month", "1", "--config", str(config_path)])
+
+    assert exit_info.value.code == 1
+    assert "nomenclatures introuvable" in caplog.records[-1].getMessage()

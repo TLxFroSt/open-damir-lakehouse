@@ -19,6 +19,7 @@ class PathsConfig:
     raw_dir: Path
     bronze_dir: Path
     silver_dir: Path
+    nomenclatures_file: Path
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,7 @@ class SilverConfig:
 
     table_name: str
     quarantine_table_name: str
+    nomenclatures_table_name: str
 
 
 @dataclass(frozen=True)
@@ -87,6 +89,11 @@ class Settings:
     def quarantine_table_path(self) -> str:
         """Chemin de la table Delta de quarantaine (lignes rejetées du silver)."""
         return (self.paths.silver_dir / self.silver.quarantine_table_name).as_posix()
+
+    @property
+    def nomenclatures_table_path(self) -> str:
+        """Chemin de la table Delta des nomenclatures (libellés des codes)."""
+        return (self.paths.silver_dir / self.silver.nomenclatures_table_name).as_posix()
 
 
 def load_settings(
