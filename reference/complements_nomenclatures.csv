@@ -1,0 +1,11 @@
+code_damir;code;libelle;justification
+ORG_CLE_REG;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+BEN_RES_REG;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+ETE_REG_COD;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+ETP_REG_COD;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+EXE_INS_REG;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+PRE_INS_REG;5;CORSE ET OUTRE-MER (regroupement, à confirmer);"Déduit : dans les fichiers 2025, 5 est le seul code hors des régions métropolitaines ; 94 (Corse) et 1 à 6 (outre-mer) n'apparaissent jamais"
+ETE_TYP_SNDS;99;VALEUR INCONNUE (pas d'établissement exécutant renseigné);Même nombre de lignes (29 579 197 en janvier 2025) que ETE_IND_TAA = 9, libellé VALEUR INCONNUE dans le SNDS et le lexique 2015
+TOP_PS5_TRG;1;DANS LE PERIMETRE PS5 TOUS REGIMES;Wiki SGMAP-AGD/DAMIR : vaut 1 dans le périmètre PS5 (hors CMU-C, complément Alsace-Moselle et prévention)
+TOP_PS5_TRG;0;HORS PERIMETRE PS5;Complémentaire de la valeur 1 (wiki SGMAP-AGD/DAMIR)
+TOP_PS5_TRG;9;VALEUR INCONNUE;Même nombre de lignes (14 826 306 en janvier 2025) que les autres codes « valeur inconnue » : EXO_MTF = 99, MTM_NAT = 9, PRS_REM_TYP = 99

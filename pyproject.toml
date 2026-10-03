@@ -19,6 +19,7 @@ dev = [
     "pre-commit>=4.6",
     "pytest>=9.1",
     "ruff>=0.16",
+    "xlrd>=2.0",
 ]
 
 [build-system]
@@ -45,8 +46,10 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tableau déclaratif des colonnes silver : une colonne par ligne, plus lisible que replié
+# Tableaux déclaratifs (colonnes silver, sources des nomenclatures) : une entrée par ligne,
+# plus lisible que replié
 "src/damir/common/schemas.py" = ["E501"]
+"src/damir/reference/nomenclatures.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
