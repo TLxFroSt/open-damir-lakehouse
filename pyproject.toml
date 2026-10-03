@@ -44,6 +44,10 @@ select = [
     "PT",  # bonnes pratiques pytest
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Tableau déclaratif des colonnes silver : une colonne par ligne, plus lisible que replié
+"src/damir/common/schemas.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
