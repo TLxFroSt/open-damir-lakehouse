@@ -36,7 +36,6 @@ def main(argv: list[str] | None = None) -> None:
         master=settings.spark.master,
         extra_conf={"spark.driver.memory": settings.spark.driver_memory},
     )
-    spark.sparkContext.setLogLevel("WARN")
     try:
         ingest_month(spark, settings, args.year, args.month)
     finally:

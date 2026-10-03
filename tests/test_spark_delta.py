@@ -1,10 +1,20 @@
-"""Test de fumée : la session Spark écrit et relit une table Delta."""
+"""Tests de la session Spark : configuration et aller-retour Delta."""
 
 from pathlib import Path
 
 from chispa import assert_df_equality
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
+
+from damir.common.spark import LOG4J_CONFIG
+
+
+def test_session_uses_project_log_config(spark: SparkSession) -> None:
+    """La JVM du driver charge le log4j2.properties du projet."""
+    system = spark.sparkContext._jvm.java.lang.System
+
+    assert LOG4J_CONFIG.is_file()
+    assert system.getProperty("log4j2.configurationFile") == LOG4J_CONFIG.as_uri()
 
 
 def test_delta_round_trip(spark: SparkSession, tmp_path: Path) -> None:

@@ -22,6 +22,5 @@ def spark(tmp_path_factory: pytest.TempPathFactory) -> Iterator[SparkSession]:
             "spark.sql.warehouse.dir": warehouse.as_posix(),
         },
     )
-    session.sparkContext.setLogLevel("WARN")
     yield session
     session.stop()

@@ -2,9 +2,12 @@
 
 import os
 import sys
+from pathlib import Path
 
 from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
+
+LOG4J_CONFIG = Path(__file__).with_name("log4j2.properties")
 
 
 def build_spark_session(
@@ -33,6 +36,11 @@ def build_spark_session(
         )
         # Horodatages en UTC, quel que soit le fuseau de la machine
         .config("spark.sql.session.timeZone", "UTC")
+        # Journalisation du projet (niveau WARN, bruits connus masqués) au lieu du profil par défaut
+        .config(
+            "spark.driver.extraJavaOptions",
+            f"-Dlog4j2.configurationFile={LOG4J_CONFIG.as_uri()}",
+        )
     )
     for key, value in (extra_conf or {}).items():
         builder = builder.config(key, value)
