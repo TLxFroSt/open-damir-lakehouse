@@ -16,6 +16,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "chispa>=0.12",
+    "pre-commit>=4.6",
     "pytest>=9.1",
     "ruff>=0.16",
 ]
