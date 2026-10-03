@@ -868,11 +868,8 @@ wheels = [
 name = "open-damir-lakehouse"
 version = "0.1.0"
 source = { editable = "." }
+default-groups = ["dev", "local"]
 dependencies = [
-    { name = "dbt-core" },
-    { name = "dbt-duckdb" },
-    { name = "delta-spark" },
-    { name = "pyspark" },
     { name = "pyyaml" },
 ]
 
@@ -884,15 +881,15 @@ dev = [
     { name = "ruff" },
     { name = "xlrd" },
 ]
+local = [
+    { name = "dbt-core" },
+    { name = "dbt-duckdb" },
+    { name = "delta-spark" },
+    { name = "pyspark" },
+]
 
 [package.metadata]
-requires-dist = [
-    { name = "dbt-core", specifier = "==1.12.5" },
-    { name = "dbt-duckdb", specifier = "==1.11.0" },
-    { name = "delta-spark", specifier = "==4.4.0" },
-    { name = "pyspark", specifier = "==4.2.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-]
+requires-dist = [{ name = "pyyaml", specifier = ">=6.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -901,6 +898,12 @@ dev = [
     { name = "pytest", specifier = ">=9.1" },
     { name = "ruff", specifier = ">=0.16" },
     { name = "xlrd", specifier = ">=2.0" },
+]
+local = [
+    { name = "dbt-core", specifier = "==1.12.5" },
+    { name = "dbt-duckdb", specifier = "==1.11.0" },
+    { name = "delta-spark", specifier = "==4.4.0" },
+    { name = "pyspark", specifier = "==4.2.0" },
 ]
 
 [[package]]
