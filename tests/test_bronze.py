@@ -99,12 +99,16 @@ def test_ingest_month_is_idempotent(spark: SparkSession, settings: Settings) -> 
 def test_reloading_a_month_leaves_other_months_untouched(
     spark: SparkSession, settings: Settings
 ) -> None:
-    """Recharger janvier remplace janvier sans toucher à février."""
+    """Charger février garde janvier ; recharger janvier remplace janvier sans toucher à février."""
     raw = settings.paths.raw_dir
     write_damir_file(raw / "A202501.csv.gz", ["202501;1111;1.00"] * 3)
     write_damir_file(raw / "A202502.csv.gz", ["202502;1111;2.00"] * 2)
     ingest_month(spark, settings, 2025, 1)
     ingest_month(spark, settings, 2025, 2)
+
+    # Vérifié avant le rechargement : sinon un chargement de février qui effacerait
+    # janvier passerait inaperçu, le rechargement de janvier le recréant
+    assert count_month(spark, settings, "202501") == 3
 
     write_damir_file(raw / "A202501.csv.gz", ["202501;1111;1.00"])
     ingest_month(spark, settings, 2025, 1)
