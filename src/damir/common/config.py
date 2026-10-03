@@ -20,6 +20,7 @@ class PathsConfig:
     bronze_dir: Path
     silver_dir: Path
     nomenclatures_file: Path
+    gold_db: Path
 
 
 @dataclass(frozen=True)

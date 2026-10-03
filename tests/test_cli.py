@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from damir.gold.__main__ import main as gold_main
 from damir.ingestion.__main__ import main, parse_args
 from damir.silver.__main__ import main as silver_main
 
@@ -18,6 +19,7 @@ def config_path(tmp_path: Path) -> Path:
             "bronze_dir": "bronze",
             "silver_dir": "silver",
             "nomenclatures_file": "nomenclatures.csv",
+            "gold_db": "gold/damir.duckdb",
         },
         "source": {
             "file_name_template": "A{year}{month:02d}.csv.gz",
@@ -98,3 +100,15 @@ def test_silver_missing_nomenclatures_exits_before_spark(
 
     assert exit_info.value.code == 1
     assert "nomenclatures introuvable" in caplog.records[-1].getMessage()
+
+
+def test_gold_missing_silver_exits_before_dbt(
+    config_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Gold : tables silver absentes -> code 1 et message clair, sans lancer dbt."""
+    with pytest.raises(SystemExit) as exit_info:
+        gold_main(["--config", str(config_path)])
+
+    assert exit_info.value.code == 1
+    assert caplog.records[-1].name == "damir.gold"
+    assert "silver introuvable" in caplog.records[-1].getMessage()

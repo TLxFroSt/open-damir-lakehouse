@@ -76,6 +76,7 @@ def settings(tmp_path: Path) -> Settings:
             bronze_dir=tmp_path / "bronze",
             silver_dir=tmp_path / "silver",
             nomenclatures_file=tmp_path / "nomenclatures.csv",
+            gold_db=tmp_path / "gold" / "damir.duckdb",
         ),
         source=SourceConfig(
             file_name_template="A{year}{month:02d}.csv.gz",

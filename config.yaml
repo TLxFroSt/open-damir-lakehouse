@@ -8,6 +8,7 @@ paths:
   bronze_dir: data/bronze # tables Delta brutes, partitionnées par _year_month
   silver_dir: data/silver # tables Delta typées et quarantaine
   nomenclatures_file: reference/nomenclatures.csv # libellés des codes, versionné
+  gold_db: data/gold/damir.duckdb # couche gold (DuckDB, construite par dbt)
 
 source:
   # Nom des fichiers mensuels : « A » + année + mois sur 2 chiffres

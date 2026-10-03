@@ -19,6 +19,7 @@ def write_config(directory: Path, **overrides: dict[str, Any]) -> Path:
             "bronze_dir": "bronze",
             "silver_dir": "silver",
             "nomenclatures_file": "nomenclatures.csv",
+            "gold_db": "gold/damir.duckdb",
         },
         "source": {
             "file_name_template": "A{year}{month:02d}.csv.gz",
