@@ -40,12 +40,12 @@ jobs:
           java-version: "17"
       # setup-uv ne publie pas de tag majeur (v10) : version complète obligatoire
       - uses: astral-sh/setup-uv@v10.2.0
-      # Les jars Delta sont téléchargés par Ivy au premier démarrage de Spark :
+      # Les jars Delta sont téléchargés une fois (damir.common.delta_jars) :
       # on les met en cache, la clé change quand les dépendances changent
-      - name: Cache des jars Delta (Ivy)
+      - name: Cache des jars Delta
         uses: actions/cache@v6
         with:
-          path: ~/.ivy2.5.2
-          key: ivy-${{ hashFiles('uv.lock') }}
+          path: ~/.cache/open-damir-lakehouse/spark-jars
+          key: delta-jars-${{ hashFiles('uv.lock') }}
       - run: uv sync --locked
       - run: uv run pytest

@@ -4,8 +4,9 @@ import os
 import sys
 from pathlib import Path
 
-from delta import configure_spark_with_delta_pip
 from pyspark.sql import SparkSession
+
+from damir.common.delta_jars import delta_jar_uris
 
 LOG4J_CONFIG = Path(__file__).with_name("log4j2.properties")
 
@@ -17,8 +18,8 @@ def build_spark_session(
 ) -> SparkSession:
     """Construit (ou récupère) une session Spark locale avec Delta Lake activé.
 
-    Les jars Delta sont téléchargés depuis Maven au premier lancement
-    (puis mis en cache dans ~/.ivy2) par `configure_spark_with_delta_pip`.
+    Les jars Delta sont téléchargés une seule fois puis passés en chemins locaux
+    (voir damir.common.delta_jars pour la raison).
     """
     # Les workers Python doivent utiliser l'interpréteur du driver (le venv).
     # Sans cela, PySpark lance « python3 », qui sous Windows pointe vers l'alias
@@ -29,6 +30,7 @@ def build_spark_session(
     builder = (
         SparkSession.builder.appName(app_name)
         .master(master)
+        .config("spark.jars", ",".join(delta_jar_uris()))
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config(
             "spark.sql.catalog.spark_catalog",
@@ -44,4 +46,4 @@ def build_spark_session(
     )
     for key, value in (extra_conf or {}).items():
         builder = builder.config(key, value)
-    return configure_spark_with_delta_pip(builder).getOrCreate()
+    return builder.getOrCreate()
