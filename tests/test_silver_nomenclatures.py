@@ -42,11 +42,11 @@ def test_write_nomenclatures_replaces_the_table(spark: SparkSession, settings: S
         "code_damir STRING, code STRING, libelle STRING, source STRING",
     )
 
-    write_nomenclatures(df, settings.nomenclatures_table_path)
-    rows = write_nomenclatures(df, settings.nomenclatures_table_path)
+    write_nomenclatures(df, settings.nomenclatures_table)
+    rows = write_nomenclatures(df, settings.nomenclatures_table)
 
     assert rows == 1
-    assert spark.read.format("delta").load(settings.nomenclatures_table_path).count() == 1
+    assert settings.nomenclatures_table.read(spark).count() == 1
 
 
 def test_known_codes_groups_by_damir_column(spark: SparkSession) -> None:
@@ -75,7 +75,7 @@ def test_silver_job_reports_unknown_codes(
     spark: SparkSession, settings: Settings, make_bronze: MakeBronze
 ) -> None:
     """Le job silver renvoie les codes sans libellé du mois, sans rejeter de ligne."""
-    overwrite_month(make_bronze({}, {}), settings.bronze_table_path, "202501")
+    overwrite_month(make_bronze({}, {}), settings.bronze_table, "202501")
 
     result = build_silver_month(spark, settings, 2025, 1, known_codes=WITHOUT_PRS_NAT)
 

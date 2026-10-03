@@ -33,6 +33,7 @@ def config_path(tmp_path: Path) -> Path:
             "quarantine_table_name": "open_damir_quarantine",
             "nomenclatures_table_name": "nomenclatures",
         },
+        "storage": {"mode": "path", "catalog": "workspace"},
     }
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(content), encoding="utf-8")
@@ -112,3 +113,16 @@ def test_gold_missing_silver_exits_before_dbt(
     assert exit_info.value.code == 1
     assert caplog.records[-1].name == "damir.gold"
     assert "silver introuvable" in caplog.records[-1].getMessage()
+
+
+def test_gold_refuses_catalog_mode(config_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """Gold local en mode catalogue : refus explicite (la tâche dbt du job s'en charge)."""
+    content = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    content["storage"]["mode"] = "catalog"
+    config_path.write_text(yaml.safe_dump(content), encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exit_info:
+        gold_main(["--config", str(config_path)])
+
+    assert exit_info.value.code == 1
+    assert "Mode catalogue" in caplog.records[-1].getMessage()

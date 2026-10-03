@@ -28,6 +28,12 @@ bronze:
   # ensuite réparties en N fichiers pour écrire le Parquet en parallèle (≈ nb de cœurs).
   files_per_month: 12
 
+storage:
+  # path : dossiers Delta locaux (bronze_dir, silver_dir) ;
+  # catalog : tables Unity Catalog <catalog>.bronze.* / <catalog>.silver.* (Databricks)
+  mode: path
+  catalog: workspace
+
 silver:
   table_name: open_damir
   # Lignes rejetées (jamais supprimées), avec leurs motifs de rejet

@@ -9,6 +9,7 @@ from pyspark.sql import functions as F
 
 from damir.common.config import Settings
 from damir.common.delta import overwrite_month
+from damir.common.tables import TableRef
 from damir.silver.job import (
     ReconciliationError,
     Totals,
@@ -22,12 +23,12 @@ MakeBronze = Callable[..., DataFrame]
 
 def load_bronze(settings: Settings, df: DataFrame, year_month: str = "202501") -> None:
     """Écrit un mois dans la table bronze de test."""
-    overwrite_month(df, settings.bronze_table_path, year_month)
+    overwrite_month(df, settings.bronze_table, year_month)
 
 
-def month_rows(spark: SparkSession, table_path: str, year_month: str = "202501") -> DataFrame:
+def month_rows(spark: SparkSession, table: TableRef, year_month: str = "202501") -> DataFrame:
     """Lignes d'un mois dans une table Delta."""
-    return spark.read.format("delta").load(table_path).where(F.col("_year_month") == year_month)
+    return table.read(spark).where(F.col("_year_month") == year_month)
 
 
 def test_valid_and_rejected_rows_are_split(
@@ -42,7 +43,7 @@ def test_valid_and_rejected_rows_are_split(
     assert result.silver == Totals(rows=2, amount=Decimal("1392.60"))
     # Montant non convertible : compte pour nul, des deux côtés de la comparaison
     assert result.quarantine == Totals(rows=1, amount=Decimal("0.00"))
-    assert month_rows(spark, settings.silver_table_path).count() == 2
+    assert month_rows(spark, settings.silver_table).count() == 2
 
 
 def test_quarantine_keeps_original_text_and_reasons(
@@ -53,7 +54,7 @@ def test_quarantine_keeps_original_text_and_reasons(
 
     build_silver_month(spark, settings, 2025, 1)
 
-    row = month_rows(spark, settings.quarantine_table_path).first()
+    row = month_rows(spark, settings.quarantine_table).first()
     assert row["PRS_PAI_MNT"] == "12,50"
     assert row[REJECTION_COLUMN] == ["non_numerique:PRS_PAI_MNT", "mois_soins_invalide"]
 
@@ -69,8 +70,8 @@ def test_rerun_after_fix_clears_old_rejections(
     result = build_silver_month(spark, settings, 2025, 1)
 
     assert result.quarantine.rows == 0
-    assert month_rows(spark, settings.quarantine_table_path).count() == 0
-    assert month_rows(spark, settings.silver_table_path).count() == 2
+    assert month_rows(spark, settings.quarantine_table).count() == 0
+    assert month_rows(spark, settings.silver_table).count() == 2
 
 
 def test_month_missing_from_bronze_is_reported(

@@ -32,8 +32,10 @@ def main(argv: list[str] | None = None) -> None:
     # Vérifications avant le démarrage de Spark (erreur d'usage immédiate, sans trace Python)
     try:
         check_months(args.month)
-        if not Path(settings.bronze_table_path, "_delta_log").is_dir():
-            raise FileNotFoundError(f"Table bronze introuvable : {settings.bronze_table_path}")
+        # En mode catalogue (Databricks), l'existence des tables est vérifiée par Spark
+        bronze = settings.bronze_table
+        if bronze.is_path and not Path(bronze.location, "_delta_log").is_dir():
+            raise FileNotFoundError(f"Table bronze introuvable : {bronze.location}")
         if not settings.paths.nomenclatures_file.is_file():
             raise FileNotFoundError(
                 f"Fichier de nomenclatures introuvable : {settings.paths.nomenclatures_file}"
@@ -46,7 +48,7 @@ def main(argv: list[str] | None = None) -> None:
     try:
         # Table des libellés rechargée depuis le fichier versionné, une fois par exécution
         nomenclatures = read_nomenclatures(spark, settings.paths.nomenclatures_file)
-        rows = write_nomenclatures(nomenclatures, settings.nomenclatures_table_path)
+        rows = write_nomenclatures(nomenclatures, settings.nomenclatures_table)
         logger.info("Nomenclatures : %s libellés chargés", f"{rows:,}")
         known = known_codes(nomenclatures)
         results = [build_silver_month(spark, settings, args.year, m, known) for m in args.month]

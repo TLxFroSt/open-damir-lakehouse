@@ -32,7 +32,7 @@ def write_damir_file(path: Path, rows: list[str]) -> None:
 
 def count_month(spark: SparkSession, settings: Settings, year_month: str) -> int:
     """Nombre de lignes d'un mois dans la table bronze."""
-    df = spark.read.format("delta").load(settings.bronze_table_path)
+    df = settings.bronze_table.read(spark)
     return df.where(F.col("_year_month") == year_month).count()
 
 

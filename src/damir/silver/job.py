@@ -16,6 +16,7 @@ from pyspark.sql import functions as F
 from damir.common.config import Settings
 from damir.common.delta import PARTITION_COLUMN, overwrite_month
 from damir.common.schemas import AMOUNT
+from damir.common.tables import TableRef
 from damir.silver.nomenclatures import unknown_code_rows
 from damir.silver.transform import REJECTION_COLUMN, rejection_reasons, to_silver_columns
 
@@ -66,9 +67,9 @@ def _totals(df: DataFrame, amount: Column) -> Totals:
     return Totals(rows=row["rows"], amount=row["amount"] or Decimal("0.00"))
 
 
-def _month(spark: SparkSession, table_path: str, year_month: str) -> DataFrame:
+def _month(spark: SparkSession, table: TableRef, year_month: str) -> DataFrame:
     """Lignes d'un mois dans une table Delta."""
-    return spark.read.format("delta").load(table_path).where(F.col(PARTITION_COLUMN) == year_month)
+    return table.read(spark).where(F.col(PARTITION_COLUMN) == year_month)
 
 
 def build_silver_month(
@@ -85,7 +86,7 @@ def build_silver_month(
     """
     year_month = f"{year}{month:02d}"
     started = time.perf_counter()
-    bronze = _month(spark, settings.bronze_table_path, year_month)
+    bronze = _month(spark, settings.bronze_table, year_month)
     # Montant source converti comme en silver : une valeur non convertible compte pour nul
     # des deux côtés, la comparaison reste juste
     raw_amount = F.col("PRS_PAI_MNT").try_cast(AMOUNT)
@@ -98,13 +99,13 @@ def build_silver_month(
     valid = to_silver_columns(checked.where(F.size(REJECTION_COLUMN) == 0))
     rejected = checked.where(F.size(REJECTION_COLUMN) > 0)
     # La quarantaine est réécrite même vide : un mois corrigé n'y laisse pas d'anciens rejets
-    overwrite_month(valid, settings.silver_table_path, year_month)
-    overwrite_month(rejected, settings.quarantine_table_path, year_month)
+    overwrite_month(valid, settings.silver_table, year_month)
+    overwrite_month(rejected, settings.quarantine_table, year_month)
 
     # Contrôle sur ce qui a réellement été écrit sur disque
-    silver_month = _month(spark, settings.silver_table_path, year_month)
+    silver_month = _month(spark, settings.silver_table, year_month)
     silver_totals = _totals(silver_month, F.col("montant_depense"))
-    quarantine = _month(spark, settings.quarantine_table_path, year_month)
+    quarantine = _month(spark, settings.quarantine_table, year_month)
     quarantine_totals = _totals(quarantine, raw_amount)
     check_reconciliation(bronze_totals, silver_totals, quarantine_totals)
 

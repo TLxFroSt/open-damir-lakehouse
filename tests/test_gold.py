@@ -26,7 +26,7 @@ def silver(spark: SparkSession, settings: Settings, make_bronze: MakeBronze) -> 
         {"PRS_NAT": "1110", "BEN_RES_REG": "84", "PRS_PAI_MNT": "50", "PRS_REM_MNT": "35"},
         {"PRS_NAT": "3313", "BEN_RES_REG": "11", "PRS_PAI_MNT": "10", "PRS_REM_MNT": "6.5"},
     )
-    overwrite_month(bronze, settings.bronze_table_path, "202501")
+    overwrite_month(bronze, settings.bronze_table, "202501")
     build_silver_month(spark, settings, 2025, 1)
     return settings
 
@@ -34,7 +34,7 @@ def silver(spark: SparkSession, settings: Settings, make_bronze: MakeBronze) -> 
 def write_labels(spark: SparkSession, settings: Settings, rows: list[tuple[str, str, str]]) -> None:
     """Table des nomenclatures limitée aux libellés fournis."""
     df = spark.createDataFrame([(*row, "test") for row in rows], NOMENCLATURE_COLUMNS)
-    write_nomenclatures(df, settings.nomenclatures_table_path)
+    write_nomenclatures(df, settings.nomenclatures_table)
 
 
 ALL_LABELS = [

@@ -15,6 +15,7 @@ from damir.common.config import (
     SilverConfig,
     SourceConfig,
     SparkConfig,
+    StorageConfig,
 )
 from damir.common.schemas import DAMIR_SOURCE_COLUMNS, TECHNICAL_FIELDS
 from damir.common.spark import build_spark_session
@@ -90,4 +91,5 @@ def settings(tmp_path: Path) -> Settings:
             quarantine_table_name="open_damir_quarantine",
             nomenclatures_table_name="nomenclatures",
         ),
+        storage=StorageConfig(mode="path", catalog="workspace"),
     )

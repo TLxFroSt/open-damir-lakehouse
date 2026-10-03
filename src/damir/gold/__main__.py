@@ -30,11 +30,18 @@ def main(argv: list[str] | None = None) -> None:
     configure_logging()
     settings = load_settings(args.config)
 
+    # Cette commande construit le gold local (DuckDB) ; sur Databricks, c'est la tâche dbt du job
+    if settings.storage.uses_catalog:
+        logger.error(
+            "Mode catalogue : la couche gold est construite par la tâche dbt du job Databricks"
+        )
+        raise SystemExit(1)
+
     # Tables silver présentes avant de lancer dbt (erreur immédiate et lisible)
     missing = [
-        path
-        for path in (settings.silver_table_path, settings.nomenclatures_table_path)
-        if not Path(path, "_delta_log").is_dir()
+        table.location
+        for table in (settings.silver_table, settings.nomenclatures_table)
+        if not Path(table.location, "_delta_log").is_dir()
     ]
     if missing:
         logger.error("Table(s) silver introuvable(s) : %s", ", ".join(missing))

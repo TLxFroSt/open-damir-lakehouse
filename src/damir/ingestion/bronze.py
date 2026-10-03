@@ -99,8 +99,8 @@ def ingest_month(
 
     file_name = raw_path.name
     year_month = f"{year}{month:02d}"
-    table_path = settings.bronze_table_path
-    logger.info("Chargement de %s dans %s (partition %s)", file_name, table_path, year_month)
+    table = settings.bronze_table
+    logger.info("Chargement de %s dans %s (partition %s)", file_name, table.location, year_month)
     started = time.perf_counter()
 
     df = read_raw_csv(spark, raw_path, settings.source)
@@ -108,8 +108,8 @@ def ingest_month(
     df = add_technical_columns(df, file_name, year_month, ingested_at or datetime.now(UTC))
     # Un .gz n'est pas découpable : Spark le lit en une seule partition (un seul cœur).
     # On répartit les lignes pour que l'écriture Parquet se fasse en parallèle.
-    overwrite_month(df.repartition(settings.bronze.files_per_month), table_path, year_month)
+    overwrite_month(df.repartition(settings.bronze.files_per_month), table, year_month)
 
-    rows = rows_written_by_last_commit(spark, table_path)
+    rows = rows_written_by_last_commit(spark, table)
     logger.info("%s lignes écrites en %.0f s", f"{rows:,}", time.perf_counter() - started)
     return rows

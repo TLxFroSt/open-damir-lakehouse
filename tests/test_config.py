@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from damir.common.config import load_settings
+from damir.common.tables import TableRef
 
 REPO_CONFIG = Path(__file__).parents[1] / "config.yaml"
 
@@ -33,6 +34,7 @@ def write_config(directory: Path, **overrides: dict[str, Any]) -> Path:
             "quarantine_table_name": "open_damir_quarantine",
             "nomenclatures_table_name": "nomenclatures",
         },
+        "storage": {"mode": "path", "catalog": "workspace"},
     }
     content.update(overrides)
     path = directory / "config.yaml"
@@ -103,3 +105,28 @@ def test_missing_key_is_rejected(tmp_path: Path) -> None:
 
     with pytest.raises(TypeError, match="bronze_dir"):
         load_settings(config_path, env={})
+
+
+def test_catalog_mode_uses_unity_catalog_names(tmp_path: Path) -> None:
+    """Mode catalog : tables <catalog>.<couche>.<table> au lieu de chemins."""
+    config_path = write_config(tmp_path, storage={"mode": "catalog", "catalog": "workspace"})
+
+    settings = load_settings(config_path, env={})
+
+    assert settings.bronze_table == TableRef("workspace.bronze.open_damir", is_path=False)
+    assert settings.silver_table.location == "workspace.silver.open_damir"
+    assert settings.quarantine_table.location == "workspace.silver.open_damir_quarantine"
+    assert settings.nomenclatures_table.location == "workspace.silver.nomenclatures"
+
+
+def test_path_mode_uses_delta_folders(tmp_path: Path) -> None:
+    """Mode path : dossiers Delta sous bronze_dir et silver_dir."""
+    settings = load_settings(write_config(tmp_path), env={})
+
+    assert settings.bronze_table == TableRef((tmp_path / "bronze" / "open_damir").as_posix(), True)
+
+
+def test_invalid_storage_mode_is_rejected(tmp_path: Path) -> None:
+    """Un mode de stockage inconnu fait échouer le chargement de la configuration."""
+    with pytest.raises(ValueError, match="storage.mode"):
+        load_settings(write_config(tmp_path, storage={"mode": "s3", "catalog": "x"}), env={})

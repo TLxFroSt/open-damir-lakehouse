@@ -46,7 +46,16 @@ def check_months(months: list[int]) -> None:
 
 
 def spark_from_settings(settings: Settings) -> SparkSession:
-    """Session Spark locale paramétrée par la configuration."""
+    """Session Spark selon le mode de stockage.
+
+    - catalog (Databricks) : session fournie par la plateforme (Spark Connect en serverless) ;
+      jars, mémoire et journalisation y sont gérés par Databricks, seul le fuseau est réglé.
+    - path (local) : session construite avec les jars Delta et la configuration du projet.
+    """
+    if settings.storage.uses_catalog:
+        spark = SparkSession.builder.getOrCreate()
+        spark.conf.set("spark.sql.session.timeZone", "UTC")
+        return spark
     return build_spark_session(
         app_name=settings.spark.app_name,
         master=settings.spark.master,

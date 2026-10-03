@@ -11,7 +11,9 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
 
+from damir.common.delta import overwrite_table
 from damir.common.schemas import SILVER_COLUMNS
+from damir.common.tables import TableRef
 
 NOMENCLATURES_SCHEMA = StructType(
     [
@@ -31,9 +33,9 @@ def read_nomenclatures(spark: SparkSession, csv_path: Path) -> DataFrame:
     )
 
 
-def write_nomenclatures(nomenclatures: DataFrame, table_path: str) -> int:
+def write_nomenclatures(nomenclatures: DataFrame, table: TableRef) -> int:
     """Remplace entièrement la table Delta des nomenclatures et renvoie son nombre de lignes."""
-    nomenclatures.write.format("delta").mode("overwrite").save(table_path)
+    overwrite_table(nomenclatures, table)
     return nomenclatures.count()
 
 

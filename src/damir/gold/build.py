@@ -31,8 +31,8 @@ def _env_var(name: str, value: str) -> Iterator[None]:
 def dbt_vars(settings: Settings) -> dict[str, str]:
     """Variables dbt : emplacements des tables silver lues par les sources."""
     return {
-        "silver_table_path": settings.silver_table_path,
-        "nomenclatures_table_path": settings.nomenclatures_table_path,
+        "silver_table_path": settings.silver_table.location,
+        "nomenclatures_table_path": settings.nomenclatures_table.location,
     }
 
 
