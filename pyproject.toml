@@ -1,0 +1,48 @@
+[project]
+name = "open-damir-lakehouse"
+version = "0.1.0"
+description = "Lakehouse médaillon (bronze/silver/gold) sur les données Open DAMIR de l'Assurance Maladie"
+readme = "README.md"
+authors = [{ name = "Mehdi Mami" }]
+requires-python = ">=3.11"
+dependencies = [
+    # pyspark et delta-spark sont épinglés ensemble : le jar Delta 4.4.0
+    # est compilé contre Spark 4.2.0, une autre version casse à l'exécution.
+    "pyspark==4.2.0",
+    "delta-spark==4.4.0",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = [
+    "chispa>=0.12",
+    "pytest>=9.1",
+    "ruff>=0.16",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "damir"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle (erreurs)
+    "W",   # pycodestyle (avertissements)
+    "F",   # pyflakes
+    "I",   # tri des imports
+    "UP",  # syntaxe Python moderne
+    "B",   # bugs probables
+    "SIM", # simplifications
+    "PT",  # bonnes pratiques pytest
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

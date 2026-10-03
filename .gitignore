@@ -1,0 +1,37 @@
+# Données : jamais commitées (fichiers Open DAMIR volumineux, tables Delta locales)
+data/
+
+# Environnement Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Caches des outils
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Artefacts Spark locaux
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoint/
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Secrets et configuration locale
+.env
+*.local.yaml
+
+# Éditeurs et OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
