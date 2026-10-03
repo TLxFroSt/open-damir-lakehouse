@@ -10,7 +10,7 @@ Les codes de nomenclature restent en texte : ce sont des catégories, pas des no
 | Colonne silver | Type | Code(s) DAMIR | Libellé |
 |---|---|---|---|
 | `mois_traitement` | date | `FLX_ANN_MOI` | Mois de traitement (mois du flux) |
-| `mois_soins` | date | `SOI_ANN` + `SOI_MOI` | Mois des soins ; nul si inconnu (0000/00) |
+| `mois_soins` | date | `SOI_ANN` + `SOI_MOI` | Mois des soins ; nul si inconnu (0000/00 ou 0001/01) |
 
 ## Prestation
 

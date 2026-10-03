@@ -70,9 +70,12 @@ def test_to_silver_columns_converts_values(make_bronze: MakeBronze) -> None:
     assert row["taux_remboursement"] == Decimal("100.00")
 
 
-def test_unknown_care_date_is_kept_with_null(make_bronze: MakeBronze) -> None:
-    """SOI_ANN=0000 / SOI_MOI=00 : ligne valide, mois des soins nul."""
-    df = rejection_reasons(make_bronze({"SOI_ANN": "0000", "SOI_MOI": "00"}))
+@pytest.mark.parametrize(("year", "month"), [("0000", "00"), ("0001", "01")])
+def test_unknown_care_date_is_kept_with_null(
+    make_bronze: MakeBronze, year: str, month: str
+) -> None:
+    """Mois des soins inconnu (0000/00 ou 0001/01) : ligne valide, mois des soins nul."""
+    df = rejection_reasons(make_bronze({"SOI_ANN": year, "SOI_MOI": month}))
 
     assert df.first()[REJECTION_COLUMN] == []
     assert to_silver_columns(df).first()["mois_soins"] is None
@@ -91,6 +94,7 @@ def test_valid_row_has_no_rejection_reason(make_bronze: MakeBronze) -> None:
         ({"PRS_REM_MNT": "1" * 20}, ["non_numerique:PRS_REM_MNT"]),  # dépasse decimal(18,2)
         ({"FLX_ANN_MOI": "202502"}, ["mois_traitement_incoherent"]),
         ({"SOI_MOI": "13"}, ["mois_soins_invalide"]),
+        ({"SOI_ANN": "0001", "SOI_MOI": "02"}, ["mois_soins_invalide"]),
         ({"SOI_ANN": "2025", "SOI_MOI": "03"}, ["soins_apres_traitement"]),
         (
             {"PRS_PAI_MNT": "x", "FLT_PAI_MNT": "y"},

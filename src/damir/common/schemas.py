@@ -76,7 +76,7 @@ TEXT, INT, DATE, RATE = StringType(), IntegerType(), DateType(), DecimalType(6, 
 SILVER_COLUMNS = (
     # Période
     _col("mois_traitement", DATE, "FLX_ANN_MOI", "Mois de traitement (mois du flux)", "Période"),
-    _col("mois_soins", DATE, ("SOI_ANN", "SOI_MOI"), "Mois des soins ; nul si inconnu (0000/00)", "Période"),
+    _col("mois_soins", DATE, ("SOI_ANN", "SOI_MOI"), "Mois des soins ; nul si inconnu (0000/00 ou 0001/01)", "Période"),
     # Prestation
     _col("nature_prestation", TEXT, "PRS_NAT", "Nature de prestation", "Prestation"),
     _col("nature_assurance", TEXT, "ASU_NAT", "Nature d'assurance", "Prestation"),

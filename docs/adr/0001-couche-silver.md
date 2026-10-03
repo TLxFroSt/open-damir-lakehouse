@@ -34,7 +34,8 @@ Le profilage de janvier 2025 (36,6 M de lignes) a montré :
    n'y laisse pas d'anciens rejets.
 
 3. **Ce qui n'est pas un rejet.**
-   - Mois des soins inconnu (0000/00) : ligne conservée, `mois_soins` nul. La dépense est réelle.
+   - Mois des soins inconnu (0000/00, ou 0001/01 observé en 2025) : ligne conservée,
+     `mois_soins` nul. La dépense est réelle.
    - Code de nomenclature inconnu : ligne conservée. Les nomenclatures évoluent chaque année ;
      rejeter ces lignes fausserait les totaux. Leur suivi relève du décodage des nomenclatures.
    - Montant négatif : régularisation, conservé tel quel.
@@ -66,6 +67,7 @@ Le profilage de janvier 2025 (36,6 M de lignes) a montré :
 ## Premier constat (janvier et février 2025)
 
 71 350 482 lignes en silver, 13 en quarantaine, cohérence vérifiée sur les deux mois.
-Les 13 lignes rejetées ont toutes un mois des soins en janvier de l'an 0001
+Les 13 lignes rejetées avaient toutes un mois des soins en janvier de l'an 0001
 (`SOI_ANN = 0001`, `SOI_MOI = 01`) : probablement une autre valeur « date inconnue »,
-non documentée, en plus de 0000/00.
+non documentée, en plus de 0000/00. Décision : traitée comme 0000/00 (ligne conservée,
+date nulle) ; seule la combinaison exacte 0001/01 est concernée, 0001/02 reste un rejet.

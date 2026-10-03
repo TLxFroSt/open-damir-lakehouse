@@ -8,8 +8,9 @@ from damir.common.schemas import SILVER_COLUMNS, TECHNICAL_FIELDS, ColumnSpec
 
 REJECTION_COLUMN = "_motifs_rejet"
 
-# Mois des soins non renseigné dans DAMIR : SOI_ANN = 0000 et SOI_MOI = 00
-UNKNOWN_YEAR_MONTH = "000000"
+# Mois des soins non renseigné dans DAMIR : 0000/00 (documenté) et 0001/01 (observé en 2025,
+# probablement la même convention) ; ces lignes restent en silver avec une date nulle
+UNKNOWN_YEAR_MONTHS = ("000000", "000101")
 
 # Colonnes numériques (montants, coefficients, dénombrements, taux) : conversion contrôlée
 _NUMERIC_SPECS = [
@@ -77,7 +78,7 @@ def rejection_reasons(bronze: DataFrame) -> DataFrame:
             F.lit("mois_traitement_incoherent"),
         ),
         F.when(
-            (care_text != UNKNOWN_YEAR_MONTH) & care_date.isNull(),
+            ~care_text.isin(*UNKNOWN_YEAR_MONTHS) & care_date.isNull(),
             F.lit("mois_soins_invalide"),
         ),
         F.when(care_date > _typed(processing), F.lit("soins_apres_traitement")),
