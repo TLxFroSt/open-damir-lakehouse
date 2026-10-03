@@ -1,0 +1,18 @@
+# Configuration du lakehouse Open DAMIR.
+# Toute clé peut être surchargée par une variable d'environnement
+# DAMIR_<SECTION>_<CLE>, par exemple DAMIR_PATHS_RAW_DIR=D:/damir/raw.
+# Les chemins relatifs partent du dossier de ce fichier.
+
+paths:
+  raw_dir: data/raw # fichiers mensuels téléchargés (A202501.csv.gz, ...)
+  bronze_dir: data/bronze # tables Delta brutes, partitionnées par _year_month
+
+source:
+  # Nom des fichiers mensuels : « A » + année + mois sur 2 chiffres
+  file_name_template: "A{year}{month:02d}.csv.gz"
+  csv_separator: ";"
+  csv_encoding: UTF-8
+
+spark:
+  master: local[*]
+  app_name: open-damir-lakehouse
