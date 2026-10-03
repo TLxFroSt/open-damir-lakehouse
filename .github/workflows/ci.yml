@@ -19,7 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      # setup-uv ne publie pas de tag majeur (v10) : version complète obligatoire
+      - uses: astral-sh/setup-uv@v10.2.0
       - name: Cache des environnements pre-commit
         uses: actions/cache@v6
         with:
@@ -37,7 +38,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: astral-sh/setup-uv@v10
+      # setup-uv ne publie pas de tag majeur (v10) : version complète obligatoire
+      - uses: astral-sh/setup-uv@v10.2.0
       # Les jars Delta sont téléchargés par Ivy au premier démarrage de Spark :
       # on les met en cache, la clé change quand les dépendances changent
       - name: Cache des jars Delta (Ivy)
