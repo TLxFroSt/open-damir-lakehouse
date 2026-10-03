@@ -3,6 +3,10 @@ version: 2
 sources:
   - name: silver
     description: Tables Delta de la couche silver, écrites par damir.silver (PySpark).
+    # Databricks : tables Unity Catalog <catalogue de la cible>.silver.<table>.
+    # DuckDB (local) : external_location ci-dessous, prioritaire sur database / schema.
+    database: "{{ target.database }}"
+    schema: silver
     tables:
       - name: open_damir
         description: Dépenses Open DAMIR typées, une partition par mois de traitement.
