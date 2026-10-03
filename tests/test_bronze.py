@@ -13,6 +13,7 @@ from damir.ingestion.bronze import (
     add_technical_columns,
     drop_unnamed_columns,
     ingest_month,
+    ingest_months,
     read_raw_csv,
 )
 
@@ -121,6 +122,31 @@ def test_missing_file_is_reported(spark: SparkSession, settings: Settings) -> No
     """Un fichier absent produit une erreur explicite avec son chemin."""
     with pytest.raises(FileNotFoundError, match="A202503.csv.gz"):
         ingest_month(spark, settings, 2025, 3)
+
+
+def test_ingest_months_loads_each_month(spark: SparkSession, settings: Settings) -> None:
+    """Plusieurs mois en un appel : chacun dans sa partition, lignes comptées par mois."""
+    raw = settings.paths.raw_dir
+    write_damir_file(raw / "A202501.csv.gz", ["202501;1111;1.00"] * 3)
+    write_damir_file(raw / "A202502.csv.gz", ["202502;1111;2.00"] * 2)
+
+    rows_by_month = ingest_months(spark, settings, 2025, [1, 2])
+
+    assert rows_by_month == {1: 3, 2: 2}
+    assert count_month(spark, settings, "202501") == 3
+    assert count_month(spark, settings, "202502") == 2
+
+
+def test_ingest_months_checks_every_file_before_loading(
+    spark: SparkSession, settings: Settings
+) -> None:
+    """Un fichier manquant est signalé avant tout chargement, même pour les mois présents."""
+    write_damir_file(settings.paths.raw_dir / "A202501.csv.gz", ["202501;1111;1.00"])
+
+    with pytest.raises(FileNotFoundError, match="A202502.csv.gz"):
+        ingest_months(spark, settings, 2025, [1, 2])
+
+    assert not (settings.paths.bronze_dir / settings.bronze.table_name).exists()
 
 
 def test_invalid_month_is_rejected(spark: SparkSession, settings: Settings) -> None:

@@ -71,6 +71,36 @@ def write_bronze(df: DataFrame, table_path: str, year_month: str) -> None:
     )
 
 
+def raw_file_path(settings: Settings, year: int, month: int) -> Path:
+    """Chemin attendu du fichier source d'un mois (sans vérifier qu'il existe)."""
+    if not 1 <= month <= 12:
+        raise ValueError(f"Mois invalide : {month} (attendu entre 1 et 12)")
+    return settings.paths.raw_dir / settings.source.file_name(year, month)
+
+
+def check_raw_files(settings: Settings, year: int, months: list[int]) -> None:
+    """Vérifie que le fichier source de chaque mois existe, et les signale tous s'il en manque."""
+    missing = [
+        path for path in (raw_file_path(settings, year, m) for m in months) if not path.is_file()
+    ]
+    if missing:
+        raise FileNotFoundError(
+            "Fichier(s) source introuvable(s) : " + ", ".join(str(p) for p in missing)
+        )
+
+
+def ingest_months(
+    spark: SparkSession, settings: Settings, year: int, months: list[int]
+) -> dict[int, int]:
+    """Charge plusieurs mois d'une année et renvoie le nombre de lignes écrites par mois.
+
+    Tous les fichiers sont vérifiés avant le premier chargement : un fichier
+    manquant est signalé tout de suite, pas après plusieurs minutes de traitement.
+    """
+    check_raw_files(settings, year, months)
+    return {month: ingest_month(spark, settings, year, month) for month in months}
+
+
 def ingest_month(
     spark: SparkSession,
     settings: Settings,
@@ -79,14 +109,11 @@ def ingest_month(
     ingested_at: datetime | None = None,
 ) -> int:
     """Charge le fichier d'un mois dans la table bronze et renvoie le nombre de lignes écrites."""
-    if not 1 <= month <= 12:
-        raise ValueError(f"Mois invalide : {month} (attendu entre 1 et 12)")
-
-    file_name = settings.source.file_name(year, month)
-    raw_path = settings.paths.raw_dir / file_name
+    raw_path = raw_file_path(settings, year, month)
     if not raw_path.is_file():
         raise FileNotFoundError(f"Fichier source introuvable : {raw_path}")
 
+    file_name = raw_path.name
     year_month = f"{year}{month:02d}"
     table_path = (settings.paths.bronze_dir / settings.bronze.table_name).as_posix()
     logger.info("Chargement de %s dans %s (partition %s)", file_name, table_path, year_month)
