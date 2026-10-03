@@ -8,9 +8,11 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
 from damir.common.config import Settings
-from damir.common.delta import overwrite_month
+from damir.common.delta import overwrite_month, table_properties
 from damir.common.tables import TableRef
 from damir.silver.job import (
+    QUARANTINE_TABLE_PROPERTIES,
+    SILVER_TABLE_PROPERTIES,
     ReconciliationError,
     Totals,
     build_silver_month,
@@ -108,3 +110,15 @@ def test_reconciliation_detects_losses(silver: Totals, message: str) -> None:
             silver=silver,
             quarantine=Totals(2, Decimal("10.00")),
         )
+
+
+def test_delta_statistics_limited_to_useful_columns(
+    spark: SparkSession, settings: Settings, make_bronze: MakeBronze
+) -> None:
+    """Silver : statistiques sur les colonnes de filtrage seulement ; quarantaine : aucune."""
+    load_bronze(settings, make_bronze({}))
+
+    build_silver_month(spark, settings, 2025, 1)
+
+    assert table_properties(spark, settings.silver_table) == SILVER_TABLE_PROPERTIES
+    assert table_properties(spark, settings.quarantine_table) == QUARANTINE_TABLE_PROPERTIES

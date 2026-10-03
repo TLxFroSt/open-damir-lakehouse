@@ -20,6 +20,16 @@ from damir.silver.transform import REJECTION_COLUMN, rejection_reasons, to_silve
 
 logger = logging.getLogger(__name__)
 
+# Statistiques Delta (min/max par fichier) limitées aux colonnes de filtrage : par défaut, Delta
+# les calcule sur les 32 premières colonnes, coût d'écriture inutile pour les autres.
+SILVER_TABLE_PROPERTIES = {
+    "delta.dataSkippingStatsColumns": (
+        "mois_traitement,mois_soins,nature_prestation,region_residence_beneficiaire"
+    )
+}
+# Quarantaine : lue en entier, rarement, et presque toujours vide
+QUARANTINE_TABLE_PROPERTIES = {"delta.dataSkippingNumIndexedCols": "0"}
+
 
 class ReconciliationError(Exception):
     """Les lignes ou les montants du silver et de la quarantaine ne correspondent pas au bronze."""
@@ -93,13 +103,13 @@ def build_silver_month(
     checked = rejection_reasons(bronze)
     valid = to_silver_columns(checked.where(F.size(REJECTION_COLUMN) == 0))
     rejected = checked.where(F.size(REJECTION_COLUMN) > 0)
-    overwrite_month(valid, settings.silver_table, year_month)
+    overwrite_month(valid, settings.silver_table, year_month, SILVER_TABLE_PROPERTIES)
     # Lignes valides + rejetées = bronze : si le silver a reçu toutes les lignes, il n'y a aucun
     # rejet, et la quarantaine est vidée sans relire le mois (76 s économisées sur janvier 2025).
     # Elle est réécrite même vide : un mois corrigé n'y laisse pas d'anciens rejets.
     if rows_written_by_last_commit(spark, settings.silver_table) == bronze_totals.rows:
         rejected = rejected.limit(0)
-    overwrite_month(rejected, settings.quarantine_table, year_month)
+    overwrite_month(rejected, settings.quarantine_table, year_month, QUARANTINE_TABLE_PROPERTIES)
 
     # Contrôle sur ce qui a réellement été écrit sur disque
     silver_month = _month(spark, settings.silver_table, year_month)
