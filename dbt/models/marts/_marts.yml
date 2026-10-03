@@ -1,0 +1,82 @@
+version: 2
+
+models:
+  - name: depenses_par_prestation
+    description: >
+      Dépenses mensuelles par nature de prestation. Un mois de traitement regroupe des soins
+      de mois différents (voir mois_soins en silver) : c'est le mois où la dépense est connue.
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [mois_traitement, nature_prestation]
+    columns:
+      - name: mois_traitement
+        description: Mois de traitement (1er du mois).
+        data_tests: [not_null]
+      - name: nature_prestation
+        description: Code de nature de prestation (PRS_NAT).
+        data_tests: [not_null]
+      - name: libelle_nature_prestation
+        description: Libellé du code ; null si le code n'a pas de libellé (signalé, pas bloquant).
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: nombre_lignes
+        description: Nombre de lignes DAMIR agrégées.
+      - name: montant_depense
+        description: Montant total de la dépense (€).
+        data_tests: [not_null, matches_silver_totals]
+      - name: base_remboursement
+        description: Base de remboursement (€).
+      - name: montant_rembourse
+        description: Montant remboursé par l'Assurance Maladie (€).
+        data_tests: [not_null, matches_silver_totals]
+      - name: montant_depassement
+        description: Montant des dépassements (€).
+      - name: montant_non_rembourse
+        description: Dépense moins montant remboursé (€) ; inclut la part des complémentaires.
+      - name: taux_remboursement_effectif
+        description: Montant remboursé / dépense ; null si la dépense est nulle.
+      - name: part_depassement
+        description: Dépassements / dépense ; null si la dépense est nulle.
+
+  - name: depenses_par_region
+    description: Dépenses mensuelles par région de résidence du bénéficiaire.
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns: [mois_traitement, region_residence_beneficiaire]
+    columns:
+      - name: mois_traitement
+        description: Mois de traitement (1er du mois).
+        data_tests: [not_null]
+      - name: region_residence_beneficiaire
+        description: Code de région de résidence (BEN_RES_REG) ; 99 = inconnue.
+        data_tests: [not_null]
+      - name: libelle_region_residence_beneficiaire
+        description: >
+          Libellé de la région ; « CORSE ET OUTRE-MER » pour le code 5 est déduit, à confirmer
+          (voir reference/README.md).
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: nombre_lignes
+        description: Nombre de lignes DAMIR agrégées.
+      - name: montant_depense
+        description: Montant total de la dépense (€).
+        data_tests: [not_null, matches_silver_totals]
+      - name: base_remboursement
+        description: Base de remboursement (€).
+      - name: montant_rembourse
+        description: Montant remboursé par l'Assurance Maladie (€).
+        data_tests: [not_null, matches_silver_totals]
+      - name: montant_depassement
+        description: Montant des dépassements (€).
+      - name: montant_non_rembourse
+        description: Dépense moins montant remboursé (€) ; inclut la part des complémentaires.
+      - name: taux_remboursement_effectif
+        description: Montant remboursé / dépense ; null si la dépense est nulle.
+      - name: part_depense_nationale
+        description: Part de la dépense du mois de la région dans la dépense nationale du mois.
